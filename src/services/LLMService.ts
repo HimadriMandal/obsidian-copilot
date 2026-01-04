@@ -1,6 +1,6 @@
 import { CopilotConfig } from '../settings';
 import { ErrorHandler, RateLimiter, APIError } from '../utils/ErrorHandler';
-import { Notice } from 'obsidian';
+import { Notice, requestUrl } from 'obsidian';
 
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system' | 'tool';
@@ -66,10 +66,10 @@ export class LLMService {
                 messages: [{ role: 'user', content: 'Hello' }],
                 maxTokens: 5
 			});
-			console.log("reresponse - "+ JSON.stringify(response));
+			console.debug("reresponse - "+ JSON.stringify(response));
             return !!response.content;
         } catch (error) {
-            console.log('Connection test failed:', error);
+            console.error('Connection test failed:', error);
             return false;
         }
     }
@@ -167,44 +167,61 @@ export class LLMService {
 
         try {
             const response = await ErrorHandler.withRetry(async () => {
-                const httpResponse = await fetch(`${this.config.apiEndpoint}/chat/completions`, {
+                const httpResponse = await requestUrl({
+                    url: `${this.config.apiEndpoint}/chat/completions`,
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.config.apiKey}`
                     },
                     body: JSON.stringify(requestBody),
-                    signal: this.abortController!.signal
+                    throw: false
                 });
 
-                if (!httpResponse.ok) {
-                    throw await this.handleHTTPError(httpResponse);
+                if (httpResponse.status !== 200) {
+                    const response = {
+                        status: httpResponse.status,
+                        statusText: 'Error',
+                        json: async () => {
+                            try {
+                                return JSON.parse(httpResponse.text) as Record<
+                                  string,
+                                  unknown
+                                >;
+                            } catch {
+                                return {};
+                            }
+                        }
+                    } as Response;
+                    throw await this.handleHTTPError(response);
                 }
 
-                return await httpResponse.json();
+                const parsed = JSON.parse(httpResponse.text) as Record<string, unknown>;
+                return parsed;
             });
 
             ErrorHandler.validateAPIResponse(response);
 
-            const message = response.choices?.[0]?.message;
+            const choices = (response.choices as unknown[]) || [];
+            const message = (choices[0] as Record<string, unknown>)?.message as Record<string, unknown> | undefined;
 
             return {
-                content: message?.content || '',
-                usage: response.usage,
-                model: response.model,
-                tool_calls: message?.tool_calls,
-                finish_reason: response.choices?.[0]?.finish_reason
+                content: (message?.content as string) || '',
+                usage: response.usage as { promptTokens: number; completionTokens: number; totalTokens: number; } | undefined,
+                model: response.model as string | undefined,
+                tool_calls: message?.tool_calls as ToolCall[] | undefined,
+                finish_reason: (choices[0] as Record<string, unknown>)?.finish_reason as string | undefined
             };
 
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.name === 'AbortError') {
                 throw new Error('Request was cancelled');
             }
 
-            if (error.code) {
+            if (error instanceof Object && 'code' in error) {
                 ErrorHandler.handleAPIError(error as APIError);
-            } else {
-                ErrorHandler.handleNetworkError(error as Error);
+            } else if (error instanceof Error) {
+                ErrorHandler.handleNetworkError(error);
             }
             throw error;
         }
@@ -235,60 +252,56 @@ export class LLMService {
         }
 
         try {
-            const response = await fetch(`${this.config.apiEndpoint}/chat/completions`, {
+            const response = await requestUrl({
+                url: `${this.config.apiEndpoint}/chat/completions`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.config.apiKey}`
                 },
                 body: JSON.stringify(requestBody),
-                signal: this.abortController.signal
+                throw: false
             });
 
-            if (!response.ok) {
-                throw await this.handleHTTPError(response);
-            }
-
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error('No response body reader available');
-            }
-
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-
-                    for (const line of lines) {
-                        if (line.trim() === '') continue;
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') {
-                                onChunk({ content: '', isComplete: true });
-                                return;
-                            }
-
-                            try {
-                                const parsed = JSON.parse(data);
-                                const content = parsed.choices?.[0]?.delta?.content;
-                                if (content) {
-                                    onChunk({ content, isComplete: false });
-                                }
-                            } catch (e) {
-                                console.warn('Failed to parse streaming chunk:', e);
-                            }
+            if (response.status !== 200) {
+                const httpResponse = {
+                    status: response.status,
+                    statusText: 'Error',
+                    json: async () => {
+                        try {
+                            return JSON.parse(response.text) as Record<string, unknown>;
+                        } catch {
+                            return {};
                         }
                     }
+                } as Response;
+                throw await this.handleHTTPError(httpResponse);
+            }
+
+            const text = response.text;
+            const lines = text.split('\n');
+
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') {
+                        onChunk({ content: '', isComplete: true });
+                        return;
+                    }
+
+                    try {
+                        const parsed = JSON.parse(data) as Record<string, unknown>;
+                        const choices = parsed.choices as unknown[];
+                        const delta = (choices?.[0] as Record<string, unknown>)?.delta as Record<string, unknown> | undefined;
+                        const content = delta?.content as string | undefined;
+                        if (content) {
+                            onChunk({ content, isComplete: false });
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse streaming chunk:', e);
+                    }
                 }
-            } finally {
-                reader.releaseLock();
             }
 
         } catch (error: any) {
@@ -306,9 +319,9 @@ export class LLMService {
     }
 
     private async handleHTTPError(response: Response): Promise<APIError> {
-        let errorData: any;
+        let errorData: Record<string, unknown> = {};
         try {
-            errorData = await response.json();
+            errorData = (await response.json()) as Record<string, unknown>;
         } catch {
             errorData = { message: response.statusText };
         }
@@ -334,9 +347,14 @@ export class LLMService {
                 code = 'HTTP_ERROR';
         }
 
+        const error = errorData.error as Record<string, unknown> | undefined;
+        const message = (typeof error?.message === 'string' ? error.message : null) ||
+                        (typeof errorData.message === 'string' ? errorData.message : null) ||
+                        `HTTP ${response.status}`;
+
         return {
             code,
-            message: errorData.error?.message || errorData.message || `HTTP ${response.status}`,
+            message,
             details: errorData
         };
     }
@@ -364,7 +382,13 @@ export class LLMService {
         const response = await this.generateText(content, systemPrompt);
 
         try {
-            return JSON.parse(response);
+            const parsed = JSON.parse(response) as Record<string, unknown>;
+            return {
+                summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+                keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints as string[] : [],
+                tags: Array.isArray(parsed.tags) ? parsed.tags as string[] : [],
+                sentiment: typeof parsed.sentiment === 'string' ? parsed.sentiment : 'neutral'
+            };
         } catch (error) {
             // Fallback if JSON parsing fails
             return {

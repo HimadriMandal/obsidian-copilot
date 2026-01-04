@@ -55,12 +55,12 @@ export class FunctionCallHandler {
     /**
      * Format function call results for LLM context
      */
-    formatResultsForLLM(toolCalls: ToolCall[], results: any[]): any[] {
-        const formattedMessages: any[] = [];
+    formatResultsForLLM(toolCalls: ToolCall[], results: any[]): Record<string, unknown>[] {
+        const formattedMessages: Record<string, unknown>[] = [];
 
         for (let i = 0; i < toolCalls.length; i++) {
             const toolCall = toolCalls[i];
-            const result = results[i];
+            const result = results[i] as Record<string, unknown> | undefined;
 
             if (!toolCall) continue; // Skip if toolCall is undefined
 
@@ -69,19 +69,19 @@ export class FunctionCallHandler {
                 if (result.data) {
                     content = JSON.stringify({
                         success: true,
-                        message: result.message || 'Operation completed successfully',
+                        message: typeof result.message === 'string' ? result.message : 'Operation completed successfully',
                         data: result.data
                     });
                 } else {
                     content = JSON.stringify({
                         success: true,
-                        message: result.message || 'Operation completed successfully'
+                        message: typeof result.message === 'string' ? result.message : 'Operation completed successfully'
                     });
                 }
             } else {
                 content = JSON.stringify({
                     success: false,
-                    error: result?.error || 'Function call failed',
+                    error: typeof result?.error === 'string' ? result.error : 'Function call failed',
                     message: 'Function execution failed'
                 });
             }
@@ -100,8 +100,17 @@ export class FunctionCallHandler {
     /**
      * Check if the LLM response contains function calls
      */
-    hasToolCalls(response: any): boolean {
-        return response.tool_calls && response.tool_calls.length > 0;
+    hasToolCalls(response: unknown): boolean {
+        if (!response || typeof response !== 'object') {
+            return false;
+        }
+
+        const obj = response as Record<string, unknown>;
+        return (
+            'tool_calls' in obj &&
+            Array.isArray(obj.tool_calls) &&
+            obj.tool_calls.length > 0
+        );
     }
 
     /**
@@ -154,7 +163,7 @@ export class FunctionCallHandler {
             .filter(call => this.validateFunctionCall(call))
             .map(call => ({
                 name: call.function.name,
-                parameters: JSON.parse(call.function.arguments),
+                parameters: JSON.parse(call.function.arguments) as Record<string, unknown>,
                 context: {
                     sessionId: `session_${Date.now()}`,
                     conversationId: this.plugin.conversationService.getCurrentConversation()?.id
@@ -180,7 +189,7 @@ export class FunctionCallHandler {
      * Get tool statistics for user
      */
     getToolStats(): string {
-        const stats = this.toolExecutor.getToolStats();
+        const stats = this.toolExecutor.getToolStats() as Record<string, number>;
         return `🔧 Vault Tools Status:
 • Available: ${stats.totalTools} tools (${stats.safeTools} safe, ${stats.sensitiveTools} sensitive)
 • Executions: ${stats.totalExecutions} total, ${stats.successfulExecutions} successful

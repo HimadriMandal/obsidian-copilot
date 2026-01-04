@@ -114,7 +114,13 @@ export class ConversationService {
     /**
      * Add a message to the current conversation
      */
-    async addMessage(role: 'user' | 'assistant' | 'system' | 'tool', content: string, metadata?: any): Promise<ConversationMessage> {
+    async addMessage(role: 'user' | 'assistant' | 'system' | 'tool', content: string, metadata?: {
+        regenerated?: boolean;
+        edited?: boolean;
+        toolCalls?: any[];
+        toolName?: string;
+        toolCallId?: string;
+    }): Promise<ConversationMessage> {
         let conversation = this.getCurrentConversation();
 
         if (!conversation) {
@@ -341,7 +347,7 @@ export class ConversationService {
 
             if (await adapter.exists(indexPath)) {
                 const indexData = await adapter.read(indexPath);
-                const index = JSON.parse(indexData);
+                const index = JSON.parse(indexData) as { currentConversationId?: string; conversations?: string[] };
 
                 this.currentConversationId = index.currentConversationId || null;
 
@@ -362,7 +368,7 @@ export class ConversationService {
 
             if (await adapter.exists(conversationPath)) {
                 const conversationData = await adapter.read(conversationPath);
-                const conversation = JSON.parse(conversationData);
+                const conversation = JSON.parse(conversationData) as Conversation;
                 this.conversations.set(conversationId, conversation);
             }
         } catch (error) {
@@ -415,11 +421,13 @@ export class ConversationService {
     }
 
     private generateConversationId(): string {
-        return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     private generateMessageId(): string {
-        return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        return `msg_${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2, 9)}`;
     }
 
     private generateConversationTitle(): string {

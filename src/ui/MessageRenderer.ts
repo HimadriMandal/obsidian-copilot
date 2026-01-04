@@ -4,7 +4,7 @@ export interface MessageAction {
     id: string;
     label: string;
     icon: string;
-    action: (content: string) => void;
+    action: (content: string) => void | Promise<void>;
 }
 
 export interface MessageRenderOptions {
@@ -147,24 +147,25 @@ export class MessageRenderer extends Component {
             });
 
             copyButton.innerHTML = '📋';
-            copyButton.addEventListener('click', async (e) => {
+            copyButton.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
 
                 const code = codeBlock.textContent || '';
-                try {
-                    await navigator.clipboard.writeText(code);
-                    copyButton.innerHTML = '✅';
-                    setTimeout(() => {
-                        copyButton.innerHTML = '📋';
-                    }, 2000);
-                } catch (error) {
-                    console.warn('Failed to copy code:', error);
-                    copyButton.innerHTML = '❌';
-                    setTimeout(() => {
-                        copyButton.innerHTML = '📋';
-                    }, 2000);
-                }
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        copyButton.innerHTML = '✅';
+                        setTimeout(() => {
+                            copyButton.innerHTML = '📋';
+                        }, 2000);
+                    })
+                    .catch((error) => {
+                        console.warn('Failed to copy code:', error);
+                        copyButton.innerHTML = '❌';
+                        setTimeout(() => {
+                            copyButton.innerHTML = '📋';
+                        }, 2000);
+                    });
             });
         });
     }
@@ -211,7 +212,7 @@ export class MessageRenderer extends Component {
 
             // Wrap table in scrollable container if it's wide
             if (!table.parentElement?.hasClass('table-wrapper')) {
-                const wrapper = createDiv('table-wrapper');
+                const wrapper = table.parentElement!.createDiv('table-wrapper');
                 table.parentElement?.insertBefore(wrapper, table);
                 wrapper.appendChild(table);
             }
@@ -298,7 +299,7 @@ export class MessageRenderer extends Component {
                 icon: '🔄',
                 action: () => {
                     // TODO: Implement regeneration logic
-                    console.log('Regenerate message:', content);
+                    console.debug('Regenerate message:', content);
                 }
             });
         }
@@ -328,7 +329,7 @@ export class MessageRenderer extends Component {
             // Get the message content from the parent message
             const messageContent = container.closest('.message')?.querySelector('.message-content');
             const content = messageContent?.textContent || '';
-            action.action(content);
+            void action.action(content);
         });
     }
 

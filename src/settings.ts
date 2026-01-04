@@ -56,7 +56,9 @@ export class CopilotSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		// API Configuration Section
-		containerEl.createEl('h2', {text: 'API Configuration'});
+		new Setting(containerEl)
+			.setName('API Configuration')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('API Endpoint')
@@ -116,7 +118,9 @@ export class CopilotSettingTab extends PluginSettingTab {
 				}));
 
 		// UI Preferences Section
-		containerEl.createEl('h2', {text: 'UI Preferences'});
+		new Setting(containerEl)
+			.setName('UI Preferences')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Sidebar Position')
@@ -154,7 +158,9 @@ export class CopilotSettingTab extends PluginSettingTab {
 				}));
 
 		// Features Section
-		containerEl.createEl('h2', {text: 'Features'});
+		new Setting(containerEl)
+			.setName('Features')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Enable Streaming')
@@ -197,7 +203,9 @@ export class CopilotSettingTab extends PluginSettingTab {
 				}));
 
 		// Conversation Settings Section
-		containerEl.createEl('h2', {text: 'Conversation Settings'});
+		new Setting(containerEl)
+			.setName('Conversation')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Conversation History')
@@ -222,7 +230,9 @@ export class CopilotSettingTab extends PluginSettingTab {
 				}));
 
 		// Connection Test Section
-		containerEl.createEl('h2', {text: 'Connection Test'});
+		new Setting(containerEl)
+			.setName('Connection Test')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Test Connection')

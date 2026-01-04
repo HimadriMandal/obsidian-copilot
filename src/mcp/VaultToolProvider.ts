@@ -1,4 +1,4 @@
-import { App, TFile, TFolder, Notice, normalizePath } from 'obsidian';
+import { App, TFile, TFolder, normalizePath, FileManager } from 'obsidian';
 import CopilotPlugin from '../main';
 
 export interface VaultTool {
@@ -18,9 +18,23 @@ export interface VaultToolParameter {
 
 export interface VaultToolResult {
     success: boolean;
-    data?: any;
+    data?: Record<string, unknown>;
     error?: string;
     message?: string;
+}
+
+interface FileMetadata {
+    name: string;
+    path: string;
+    type: string;
+    size?: number;
+    created?: number;
+    modified?: number;
+    extension?: string;
+    frontmatter?: Record<string, unknown>;
+    tags?: string[];
+    outlinks?: string[];
+    headings?: Array<{ heading: string; level: number }>;
 }
 
 export class VaultToolProvider {
@@ -325,7 +339,7 @@ export class VaultToolProvider {
             }
 
             if (param.name in parameters) {
-                const value = parameters[param.name];
+                const value = parameters[param.name] as unknown;
                 const expectedType = param.type;
                 const actualType = typeof value;
 
@@ -473,7 +487,7 @@ export class VaultToolProvider {
                 };
             }
 
-            let metadata: any = {
+            let metadata: Partial<FileMetadata> = {
                 name: file.name,
                 path: file.path,
                 type: file instanceof TFile ? 'file' : 'folder'
@@ -525,7 +539,7 @@ export class VaultToolProvider {
     private async searchContent(query: string, filePattern?: string): Promise<VaultToolResult> {
         try {
             const files = this.app.vault.getMarkdownFiles();
-            const results: any[] = [];
+            const results: Array<{ file: string; matches: Array<{ line: number; content: string; context: string }> }> = [];
 
             let filesToSearch = files;
             if (filePattern) {
@@ -537,7 +551,7 @@ export class VaultToolProvider {
                 try {
                     const content = await this.app.vault.read(file);
                     const lines = content.split('\n');
-                    const matches: any[] = [];
+                    const matches: Array<{ line: number; content: string; context: string }> = [];
 
                     lines.forEach((line, lineNum) => {
                         if (line.toLowerCase().includes(query.toLowerCase())) {
@@ -561,13 +575,15 @@ export class VaultToolProvider {
                 }
             }
 
+            const totalMatches: number = results.reduce((sum, r) => sum + r.matches.length, 0);
+
             return {
                 success: true,
                 data: {
                     query: query,
                     results: results,
                     totalFiles: results.length,
-                    totalMatches: results.reduce((sum, r) => sum + r.matches.length, 0)
+                    totalMatches: totalMatches
                 },
                 message: `Found ${results.length} files with content matching: ${query}`
             };
@@ -732,7 +748,7 @@ export class VaultToolProvider {
                 };
             }
 
-            await this.app.vault.delete(file);
+            await this.app.vault.trash(file, true);
 
             return {
                 success: true,

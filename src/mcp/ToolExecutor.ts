@@ -126,13 +126,25 @@ export class ToolExecutor {
     /**
      * Parse LLM function calls into tool calls
      */
-    parseLLMFunctionCalls(functionCalls: any[]): ToolCall[] {
-        return functionCalls.map(call => ({
-            name: call.name,
-            parameters: typeof call.arguments === 'string'
-                ? JSON.parse(call.arguments)
-                : call.arguments
-        }));
+    parseLLMFunctionCalls(functionCalls: Array<{ name: string; arguments: string | Record<string, any> }>): ToolCall[] {
+        return functionCalls.map(call => {
+            let parameters: Record<string, any>;
+            
+            if (typeof call.arguments === 'string') {
+                try {
+                    parameters = JSON.parse(call.arguments) as Record<string, any>;
+                } catch (error) {
+                    parameters = {};
+                }
+            } else {
+                parameters = call.arguments;
+            }
+            
+            return {
+                name: call.name,
+                parameters
+            };
+        });
     }
 
     /**
@@ -192,18 +204,20 @@ export class ToolExecutor {
         return this.vaultToolProvider;
     }
 
-    private convertParametersToJSONSchema(parameters: any[]): Record<string, any> {
+    private convertParametersToJSONSchema(parameters: Array<{ name: string; type: string; description: string; required?: boolean; default?: unknown }>): Record<string, any> {
         const schema: Record<string, any> = {};
 
         for (const param of parameters) {
-            schema[param.name] = {
+            const paramSchema: Record<string, any> = {
                 type: param.type,
                 description: param.description
             };
 
             if (param.default !== undefined) {
-                schema[param.name].default = param.default;
+                paramSchema.default = param.default;
             }
+
+            schema[param.name] = paramSchema;
         }
 
         return schema;

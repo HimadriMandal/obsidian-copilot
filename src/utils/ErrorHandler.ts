@@ -44,7 +44,7 @@ export class ErrorHandler {
         console.error('Copilot Error:', {
             code: error.code,
             message: error.message,
-            details: error.details,
+            details: (error.details as Record<string, unknown>) ?? {},
             timestamp: new Date().toISOString()
         });
 
@@ -93,12 +93,11 @@ export class ErrorHandler {
         }
 
         if (response.error) {
-            const apiError: APIError = {
-                code: response.error.code || 'API_ERROR',
-                message: response.error.message || 'Unknown API error',
-                details: response.error
-            };
-            throw apiError;
+            const errorDetails = response.error as Record<string, any>;
+            const error = new Error((errorDetails.message as string) || 'Unknown API error');
+            (error as any).code = (errorDetails.code as string) || 'API_ERROR';
+            (error as any).details = errorDetails;
+            throw error;
         }
 
         return true;

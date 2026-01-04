@@ -49,7 +49,7 @@ export class CopilotView extends ItemView {
         this.switchToTab('chat');
 
         // Load existing conversation messages
-        this.loadConversationHistory();
+        void this.loadConversationHistory();
     }
 
     private async loadConversationHistory(): Promise<void> {
@@ -74,7 +74,7 @@ export class CopilotView extends ItemView {
                     continue;
                 }
 
-                await this.addMessageToChat(message.role as 'user' | 'assistant' | 'tool', message.content);
+                await this.addMessageToChat(message.role, message.content);
             }
         }
     }
@@ -97,7 +97,9 @@ export class CopilotView extends ItemView {
         const statusText = status.createSpan('status-text');
 
         // Check connection status
-        this.updateConnectionStatus(statusDot, statusText);
+        this.updateConnectionStatus(statusDot, statusText).catch((error) => {
+            console.error('Failed to update connection status:', error);
+        });
 
         // Tab navigation
         const tabNav = header.createDiv('copilot-tabs');
@@ -121,35 +123,27 @@ export class CopilotView extends ItemView {
         const contentArea = this.viewContainerEl.createDiv('copilot-content');
 
         // Chat content
-        const chatContent = contentArea.createDiv('content-panel chat-panel');
-        chatContent.style.display = 'flex';
-        chatContent.style.flexDirection = 'column';
-        chatContent.style.height = '100%';
-        chatContent.style.overflow = 'hidden';
+        const chatContent = contentArea.createDiv('content-panel chat-panel active');
         this.createChatInterface(chatContent);
 
         // Tools content
-        const toolsContent = contentArea.createDiv('content-panel tools-panel');
-        toolsContent.style.display = 'none';
+        const toolsContent = contentArea.createDiv('content-panel tools-panel hidden');
         this.createToolsInterface(toolsContent);
 
         // Knowledge content (if enabled)
         if (this.plugin.settings.enableKnowledgeBase) {
-            const knowledgeContent = contentArea.createDiv('content-panel knowledge-panel');
-            knowledgeContent.style.display = 'none';
+            const knowledgeContent = contentArea.createDiv('content-panel knowledge-panel hidden');
             this.createKnowledgeInterface(knowledgeContent);
         }
     }
 
     private createChatInterface(container: HTMLElement): void {
         container.addClass('chat-layout');
-        container.style.rowGap = '0.75rem';
 
         // Chat history area
         const chatHistory = container.createDiv('chat-history');
         chatHistory.id = 'copilot-chat-history';
-        chatHistory.style.flex = '1 1 auto';
-        chatHistory.style.overflowY = 'auto';
+        chatHistory.addClass('chat-history-scrollable');
 
         // Welcome message
         const welcomeMsg = chatHistory.createDiv('message system-message');
@@ -169,7 +163,7 @@ export class CopilotView extends ItemView {
 
         // Input area
         const inputArea = container.createDiv('chat-input-area');
-        inputArea.style.flexShrink = '0';
+        inputArea.addClass('no-shrink');
 
         const inputContainer = inputArea.createDiv('input-container');
         const textarea = inputContainer.createEl('textarea', {
@@ -184,7 +178,9 @@ export class CopilotView extends ItemView {
 
         const sendButton = buttonContainer.createEl('button', { text: 'Send' });
         sendButton.addClass('mod-cta');
-        sendButton.addEventListener('click', () => this.sendMessage(textarea));
+        sendButton.addEventListener('click', () => {
+            void this.sendMessage(textarea);
+        });
 
         const clearButton = buttonContainer.createEl('button', { text: 'Clear' });
         clearButton.addEventListener('click', () => this.clearChat());
@@ -193,7 +189,7 @@ export class CopilotView extends ItemView {
         textarea.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                this.sendMessage(textarea);
+                void this.sendMessage(textarea);
             }
         });
     }
@@ -207,26 +203,31 @@ export class CopilotView extends ItemView {
 
         const analyzeBtn = docSection.createEl('button', { text: 'Analyze Current Document' });
         analyzeBtn.addClass('tool-button');
-        analyzeBtn.addEventListener('click', async () => {
-            try {
-                const analysis = await this.plugin.documentService.analyzeActiveDocument();
-                if (analysis) {
-                    await this.displayAnalysisResults(analysis);
+        analyzeBtn.addEventListener('click', () => {
+            void (async () => {
+                try {
+                    const analysis = await this.plugin.documentService.analyzeActiveDocument();
+                    if (analysis) {
+                        await this.displayAnalysisResults(analysis);
+                    }
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    this.showError(`Analysis failed: ${errorMessage}`);
                 }
-            } catch (error: any) {
-                this.showError(`Analysis failed: ${error.message}`);
-            }
+            })();
         });
 
         const summarizeBtn = docSection.createEl('button', { text: 'Summarize Document' });
         summarizeBtn.addClass('tool-button');
-        summarizeBtn.addEventListener('click', async () => {
-            try {
-                const summary = await this.plugin.documentService.summarizeDocument();
-                await this.displayResult('Document Summary', summary);
-            } catch (error: any) {
-                this.showError(`Summarization failed: ${error.message}`);
-            }
+        summarizeBtn.addEventListener('click', () => {
+            void (async () => {
+                try {
+                    const summary = await this.plugin.documentService.summarizeDocument();
+                    await this.displayResult('Document Summary', summary);
+                } catch (error: any) {
+                    this.showError(`Summarization failed: ${error.message}`);
+                }
+            })();
         });
 
         // Text editing section
@@ -235,26 +236,30 @@ export class CopilotView extends ItemView {
 
         const improveBtn = editSection.createEl('button', { text: 'Improve Selected Text' });
         improveBtn.addClass('tool-button');
-        improveBtn.addEventListener('click', async () => {
-            try {
-                const improved = await this.plugin.documentService.improveText();
-                this.plugin.documentService.replaceSelection(improved);
-                this.showSuccess('Text improved successfully!');
-            } catch (error: any) {
-                this.showError(`Improvement failed: ${error.message}`);
-            }
+        improveBtn.addEventListener('click', () => {
+            void (async () => {
+                try {
+                    const improved = await this.plugin.documentService.improveText();
+                    this.plugin.documentService.replaceSelection(improved);
+                    this.showSuccess('Text improved successfully!');
+                } catch (error: any) {
+                    this.showError(`Improvement failed: ${error.message}`);
+                }
+            })();
         });
 
         const continueBtn = editSection.createEl('button', { text: 'Continue Writing' });
         continueBtn.addClass('tool-button');
-        continueBtn.addEventListener('click', async () => {
-            try {
-                const continuation = await this.plugin.documentService.continueText();
-                this.plugin.documentService.insertAtCursor('\\n' + continuation);
-                this.showSuccess('Text continued successfully!');
-            } catch (error: any) {
-                this.showError(`Continuation failed: ${error.message}`);
-            }
+        continueBtn.addEventListener('click', () => {
+            void (async () => {
+                try {
+                    const continuation = await this.plugin.documentService.continueText();
+                    this.plugin.documentService.insertAtCursor('\\n' + continuation);
+                    this.showSuccess('Text continued successfully!');
+                } catch (error: any) {
+                    this.showError(`Continuation failed: ${error.message}`);
+                }
+            })();
         });
 
         // Tags and organization section
@@ -263,14 +268,16 @@ export class CopilotView extends ItemView {
 
         const tagsBtn = orgSection.createEl('button', { text: 'Generate Tags' });
         tagsBtn.addClass('tool-button');
-        tagsBtn.addEventListener('click', async () => {
-            try {
-                const tags = await this.plugin.documentService.generateTags();
-                const tagString = tags.map(tag => `#${tag}`).join(' ');
-                await this.displayResult('Suggested Tags', tagString);
-            } catch (error: any) {
-                this.showError(`Tag generation failed: ${error.message}`);
-            }
+        tagsBtn.addEventListener('click', () => {
+            void (async () => {
+                try {
+                    const tags = await this.plugin.documentService.generateTags();
+                    const tagString = tags.map(tag => `#${tag}`).join(' ');
+                    await this.displayResult('Suggested Tags', tagString);
+                } catch (error: any) {
+                    this.showError(`Tag generation failed: ${error.message}`);
+                }
+            })();
         });
 
         // Results area
@@ -311,16 +318,14 @@ export class CopilotView extends ItemView {
         // Update content panels
         const panels = this.viewContainerEl.querySelectorAll('.content-panel');
         panels.forEach(panel => {
-            (panel as HTMLElement).style.display = 'none';
+            (panel as HTMLElement).classList.remove('active');
+            (panel as HTMLElement).classList.add('hidden');
         });
 
-        const activePanel = this.viewContainerEl.querySelector(`.${tab}-panel`) as HTMLElement | null;
+        const activePanel = this.viewContainerEl.querySelector(`.${tab}-panel`);
         if (activePanel) {
-            if (activePanel.classList.contains('chat-panel')) {
-                activePanel.style.display = 'flex';
-            } else {
-                activePanel.style.display = 'block';
-            }
+            activePanel.classList.remove('hidden');
+            activePanel.classList.add('active');
         }
     }
 
@@ -334,7 +339,7 @@ export class CopilotView extends ItemView {
         try {
             // Add user message to conversation and display
             const userMessage = await this.plugin.conversationService.addMessage('user', message);
-            this.addMessageToChat('user', message);
+            void this.addMessageToChat('user', message);
 
             // Add loading indicator
             const loadingId = this.addLoadingMessage();
@@ -371,17 +376,17 @@ export class CopilotView extends ItemView {
                             if (!assistantMessageAdded) {
                                 // Remove loading and add initial assistant message
                                 this.removeLoadingMessage(loadingId);
-                                this.addMessageToChat('assistant', assistantResponse);
+                                void this.addMessageToChat('assistant', assistantResponse);
                                 assistantMessageAdded = true;
                             } else {
                                 // Update the assistant message with accumulated content
-                                this.updateLastAssistantMessage(assistantResponse);
+                                void this.updateLastAssistantMessage(assistantResponse);
                             }
                         }
 
                         if (chunk.isComplete && assistantResponse.trim()) {
                             // Save the final assistant message to conversation
-                            this.plugin.conversationService.addMessage('assistant', assistantResponse);
+                            void this.plugin.conversationService.addMessage('assistant', assistantResponse);
                         }
                     });
                 } else {
@@ -390,7 +395,7 @@ export class CopilotView extends ItemView {
 
                     // Remove loading and add assistant response
                     this.removeLoadingMessage(loadingId);
-                    this.addMessageToChat('assistant', response.content);
+                    void this.addMessageToChat('assistant', response.content);
 
                     // Save assistant message to conversation
                     await this.plugin.conversationService.addMessage('assistant', response.content);
@@ -399,7 +404,7 @@ export class CopilotView extends ItemView {
             } catch (error: any) {
                 this.removeLoadingMessage(loadingId);
                 const errorMessage = `I apologize, but I encountered an error: ${error.message}`;
-                this.addMessageToChat('assistant', errorMessage);
+                void this.addMessageToChat('assistant', errorMessage);
 
                 // Save error message to conversation for context
                 await this.plugin.conversationService.addMessage('assistant', errorMessage);
@@ -407,7 +412,7 @@ export class CopilotView extends ItemView {
 
         } catch (error: any) {
             console.error('Chat error:', error);
-            this.addMessageToChat('assistant', `I apologize, but I encountered an unexpected error. Please try again.`);
+            void this.addMessageToChat('assistant', `I apologize, but I encountered an unexpected error. Please try again.`);
         }
     }
 
@@ -444,11 +449,11 @@ export class CopilotView extends ItemView {
             const formattedToolMessages = this.plugin.functionCallHandler.formatResultsForLLM(toolCalls, executionResults.results);
 
             for (const toolMessage of formattedToolMessages) {
-                await this.plugin.conversationService.addMessage('tool', toolMessage.content, {
-                    toolCallId: toolMessage.tool_call_id,
-                    toolName: toolMessage.name
+                await this.plugin.conversationService.addMessage('tool', String(toolMessage.content), {
+                    toolCallId: String(toolMessage.tool_call_id),
+                    toolName: String(toolMessage.name)
                 });
-                await this.addMessageToChat('tool', toolMessage.content);
+                await this.addMessageToChat('tool', String(toolMessage.content));
             }
 
             contextMessages = this.plugin.conversationService.getMessagesForContext();
