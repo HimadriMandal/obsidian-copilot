@@ -3,7 +3,7 @@
 	"name": "Copilot with Vault tools",
 	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Integrate LLM into your obsidian using the OpenAI or custom LLM urls.",
+	"description": "Integrate LLM into your vault using the OpenAI or any custom LLM urls.",
 	"author": "HimadriMandal",
 	"authorUrl": "https://github.com/HimadriMandal/",
 	"fundingUrl": "https://github.com/HimadriMandal",
