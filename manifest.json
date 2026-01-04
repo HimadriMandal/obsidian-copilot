@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-copilot",
-	"name": "Obsidian Copilot",
-	"version": "1.0.0",
+	"id": "copilot-llm",
+	"name": "Copilot with Vault tools",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "This will create a sample copilot that will add, edit connect the nodes based custom llms.",
-	"author": "HimadriMandal/",
+	"description": "Integrate LLM into your obsidian using the OpenAI or custom LLM urls.",
+	"author": "HimadriMandal",
 	"authorUrl": "https://github.com/HimadriMandal/",
 	"fundingUrl": "https://github.com/HimadriMandal",
 	"isDesktopOnly": true

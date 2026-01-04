@@ -1,90 +1,94 @@
-# Obsidian Sample Plugin
+# Copilot with MCP
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+AI Copilot is an opinionated rewrite of the stock Obsidian sample plugin. It focuses on three ideas:
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+- A persistent side-panel chat experience that speaks to any LLM endpoint you configure
+- Editor-aware writing helpers (improve selection, continue writing, summarize, tag suggestions)
+- Vault automation through tool execution and MCP-style function calling
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+The plugin is written in TypeScript, compiled with esbuild, and runs directly inside `.obsidian/plugins/obsidian-copilot` so you can iterate without leaving your vault.
 
-## First time developing plugins?
+## Features
 
-Quick starting guide for new plugin devs:
+- **Copilot side panel** – Ribbon icon + command open a custom `AI Copilot` view with Chat / Tools / Knowledge tabs. Chat supports streaming responses, maintains conversation history, and shows connection status.
+- **Quick document tools** – The Tools tab surfaces one-click actions: analyze the active note, summarize it, improve selected text, continue writing at the cursor, and generate tag recommendations.
+- **Editor-first AI helpers** – Document commands operate on the current editor selection/context and write results back into the note via `DocumentService` helpers.
+- **Vault-aware automation** – `ToolExecutor` exposes curated “vault tools” you can test, inspect, and let the model call through the function-calling pipeline handled by `FunctionCallHandler`.
+- **LLM flexibility** – Configure endpoint, key, model, temperature, token limits, streaming, and various feature flags from the Settings tab. Conversation history length and autosave are adjustable.
+- **Future knowledge base tab** – The Knowledge tab currently advertises upcoming vault-wide analysis and organization workflows (placeholder content shipped for roadmap transparency).
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Commands
 
-## Releasing new releases
+All commands are available from the command palette and can be bound to hotkeys:
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+| Command | What it does |
+| --- | --- |
+| `Open AI Copilot Panel` | Reveals the side panel (same as clicking the ribbon icon).
+| `Analyze Current Document` | Runs `DocumentService.analyzeActiveDocument()` and shows stats in a notice / panel.
+| `Improve Selected Text` | Sends the current selection (or cursor context) to the LLM and replaces it with the improved copy.
+| `Continue Writing` | Asks the LLM to continue the paragraph around the cursor and inserts the result.
+| `Summarize Document` | Generates a medium-length summary of the active note.
+| `Generate Tags` | Suggests hash-tag-friendly keywords based on the note content.
+| `Test LLM Connection` | Verifies the endpoint + API key credentials via `LLMService.testConnection()`.
+| `Test Vault Tools` | Dry-runs `ToolExecutor` to ensure Obsidian-side capabilities are reachable.
+| `Show Available Vault Tools` | Writes a help note listing the registered tools and safety levels.
+| `Show Tool Usage Statistics` | Displays success/failure counts for tool execution (handy when debugging function calls).
+| `Test Function Calling` | Exercises the full function-calling pipeline between the LLM and vault tools.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Configuration
 
-## Adding your plugin to the community plugin list
+Open *Settings → Community Plugins → Obsidian Copilot* to tune:
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+- **API configuration** – Endpoint URL, API key, default model name, temperature, max tokens.
+- **UI preferences** – Sidebar position (left/right), per-panel theme (auto/light/dark), autosave toggle.
+- **Features** – Enable/disable streaming, knowledge base previews, advanced editing tools, and vault-access tools.
+- **Conversation** – Toggle history persistence and its maximum length.
+- **Connection test** – A built-in “Test Connection” button mirrors the palette command for quick checks.
 
-## How to use
+Changes are saved immediately (`saveSettings()` also refreshes live services so the new config applies without reloads).
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## Development
 
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+git clone https://github.com/HimadriMandal/obsidian-copilot.git
+cd obsidian-copilot
+npm install
+npm run dev   # builds main.ts → main.js in watch mode
 ```
 
-If you have multiple URLs, you can also do:
+During development, symlink or copy the repo into your vault’s `.obsidian/plugins/` folder. Reload Obsidian (or toggle the plugin) after each build to pick up the latest `main.js`.
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+### Available scripts
 
-## API Documentation
+- `npm run dev` – Incremental build with esbuild watch
+- `npm run build` – Production build (minified)
+- `npm run lint` – Runs the configured ESLint setup
+- `npm run version:<type>` – Use standard npm versioning commands (`patch`, `minor`, `major`) to bump `manifest.json`, `package.json`, and `versions.json`
 
-See https://docs.obsidian.md
+## Packaging & Release Checklist
+
+1. Update `manifest.json` and `versions.json` with the new version / min Obsidian version.
+2. Run `npm run build` to produce the distributable `main.js`.
+3. Create a GitHub release (tag = version, no `v` prefix) and attach `manifest.json`, `main.js`, and `styles.css`.
+4. (Optional) Submit a PR to [`obsidianmd/obsidian-releases`](https://github.com/obsidianmd/obsidian-releases) if you want the plugin listed publicly.
+
+## Manual Installation
+
+Copy the following into `Vault/.obsidian/plugins/obsidian-copilot/`:
+
+- `manifest.json`
+- `main.js`
+- `styles.css`
+
+Refresh Community Plugins in Obsidian and enable **Obsidian Copilot**.
+
+## Roadmap
+
+- Knowledge tab data visualizations and vault graph insights
+- Safer tool approval UX (per-tool consent dialogs, trust levels)
+- Expanded MCP toolset (querying calendars, external APIs, etc.)
+- Conversation export + shareable snippets from the MessageRenderer
+
+---
+
+Have questions or ideas? Open an issue or discussion on the repository – contributions are welcome!
