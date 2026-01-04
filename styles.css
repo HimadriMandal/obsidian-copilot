@@ -1,8 +1,897 @@
-/*
+/* AI Copilot Plugin Styles */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Main container */
+.copilot-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
 
-If your plugin does not need CSS, delete this file.
+.copilot-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
 
-*/
+/* Header styles */
+.copilot-header {
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding: 16px;
+    background: var(--background-primary);
+}
+
+.copilot-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.copilot-title h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-normal);
+}
+
+.copilot-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.status-dot.connected {
+    background: var(--color-green);
+}
+
+.status-dot.disconnected {
+    background: var(--color-orange);
+}
+
+.status-dot.error {
+    background: var(--color-red);
+}
+
+/* Tab navigation */
+.copilot-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.tab-button {
+    padding: 8px 12px;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.tab-button:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.tab-button.active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
+}
+
+/* Content area */
+.copilot-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.content-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Chat interface styles */
+.chat-panel {
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+    /* Ensure proper scrolling on all platforms */
+    -webkit-overflow-scrolling: touch;
+    /* Set minimum height to enable scrolling */
+    min-height: 0;
+}
+
+.message {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+}
+
+.user-message {
+    align-items: flex-end;
+}
+
+.assistant-message {
+    align-items: flex-start;
+}
+
+.system-message {
+    align-items: center;
+}
+
+.message-content {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Prevent content from forcing horizontal scroll */
+    box-sizing: border-box;
+}
+
+.user-message .message-content {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-bottom-right-radius: 4px;
+}
+
+.assistant-message .message-content {
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    border-bottom-left-radius: 4px;
+}
+
+.system-message .message-content {
+    background: var(--background-modifier-border);
+    color: var(--text-muted);
+    border-radius: 8px;
+    font-size: 13px;
+    max-width: 95%;
+}
+
+.system-message .message-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+/* Loading animation */
+.loading-dots {
+    font-size: 16px;
+    color: var(--text-muted);
+    animation: loadingPulse 1.5s infinite;
+}
+
+@keyframes loadingPulse {
+    0%, 60%, 100% { opacity: 0.3; }
+    30% { opacity: 1; }
+}
+
+/* Chat input area */
+.chat-input-area {
+    border-top: 1px solid var(--background-modifier-border);
+    padding: 16px;
+    background: var(--background-primary);
+}
+
+.input-container {
+    margin-bottom: 12px;
+}
+
+.chat-input {
+    width: 100%;
+    min-height: 60px;
+    max-height: 120px;
+    padding: 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-primary);
+    color: var(--text-normal);
+    font-family: var(--font-interface);
+    font-size: 14px;
+    resize: vertical;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+.button-container {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.button-container button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* Tools interface styles */
+.tools-panel {
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.tools-panel h4 {
+    margin: 0 0 16px 0;
+    color: var(--text-normal);
+    font-size: 16px;
+}
+
+.tool-section {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tool-section:last-child {
+    border-bottom: none;
+}
+
+.tool-section h5 {
+    margin: 0 0 12px 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tool-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 12px 16px;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    text-align: left;
+}
+
+.tool-button:hover {
+    background: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+}
+
+.tool-button:active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+/* Tool results */
+.tool-results {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.tool-result h6 {
+    margin: 0 0 12px 0;
+    color: var(--text-normal);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.result-content {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-normal);
+}
+
+.result-content strong {
+    color: var(--text-normal);
+    font-weight: 600;
+}
+
+.result-content em {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.result-content code {
+    background: var(--background-modifier-border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-monospace);
+    font-size: 12px;
+}
+
+/* Tool messages */
+.tool-message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.tool-message.success {
+    background: var(--color-green);
+    color: white;
+}
+
+.tool-message.error {
+    background: var(--color-red);
+    color: white;
+}
+
+/* Knowledge interface styles */
+.knowledge-panel {
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.knowledge-panel h4 {
+    margin: 0 0 16px 0;
+    color: var(--text-normal);
+    font-size: 16px;
+}
+
+.knowledge-placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 32px 16px;
+}
+
+.knowledge-placeholder p {
+    margin-bottom: 16px;
+}
+
+.knowledge-placeholder ul {
+    text-align: left;
+    margin: 16px 0;
+    padding-left: 20px;
+}
+
+/* Responsive design */
+@media (max-width: 400px) {
+    .copilot-tabs {
+        flex-wrap: wrap;
+    }
+
+    .tab-button {
+        flex: 1;
+        text-align: center;
+    }
+
+    .message-content {
+        max-width: 95%;
+    }
+}
+
+/* Dark theme adjustments */
+.theme-dark .copilot-header {
+    border-bottom-color: var(--background-modifier-border);
+}
+
+.theme-dark .chat-input {
+    background: var(--background-secondary);
+}
+
+.theme-dark .tool-button {
+    background: var(--background-modifier-hover);
+}
+
+.theme-dark .tool-results {
+    background: var(--background-modifier-border);
+}
+
+/* Message rendering enhancements */
+.message-wrapper {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.message-timestamp {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-align: right;
+}
+
+.user-message .message-timestamp {
+    text-align: right;
+}
+
+.assistant-message .message-timestamp {
+    text-align: left;
+}
+
+/* Rich content styling */
+.message-content {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    margin: 16px 0 8px 0;
+    color: inherit;
+}
+
+.message-content h1 { font-size: 1.5em; }
+.message-content h2 { font-size: 1.3em; }
+.message-content h3 { font-size: 1.2em; }
+.message-content h4 { font-size: 1.1em; }
+.message-content h5 { font-size: 1.05em; }
+.message-content h6 { font-size: 1em; }
+
+.message-content p {
+    margin: 8px 0;
+}
+
+.message-content ul,
+.message-content ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+.message-content li {
+    margin: 4px 0;
+}
+
+.message-content blockquote {
+    border-left: 3px solid var(--interactive-accent);
+    margin: 8px 0;
+    padding: 8px 16px;
+    background: var(--background-secondary);
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+}
+
+/* Code block styling */
+.message-content pre {
+    position: relative;
+    background: var(--background-primary-alt);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    margin: 12px 0;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
+
+.message-content code {
+    background: var(--background-modifier-border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
+
+.message-content pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Code copy button */
+.code-copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.message-content pre:hover .code-copy-button {
+    opacity: 1;
+}
+
+.code-copy-button:hover {
+    background: var(--background-modifier-hover);
+}
+
+/* Code language label */
+.code-language-label {
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table styling */
+.chat-table {
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+    width: 100%;
+    min-width: 300px;
+}
+
+.chat-table th,
+.chat-table td {
+    border: 1px solid var(--background-modifier-border);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.chat-table th {
+    background: var(--background-secondary);
+    font-weight: 600;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin: 12px 0;
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+/* Link styling */
+.message-content .external-link {
+    color: var(--link-color);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--link-color);
+}
+
+.message-content .external-link:hover {
+    text-decoration: none;
+    border-bottom: 1px solid var(--link-color);
+}
+
+.external-link-icon {
+    opacity: 0.6;
+    font-size: 0.8em;
+}
+
+.message-content .internal-link {
+    color: var(--link-color-hover);
+    text-decoration: none;
+}
+
+.message-content .internal-link:hover {
+    color: var(--link-color);
+}
+
+/* Math styling */
+.chat-math {
+    margin: 8px 0;
+}
+
+/* Message actions */
+.message-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+    position: absolute;
+    top: 8px;
+    right: -40px;
+    display: flex;
+    gap: 4px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow: var(--shadow-s);
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+}
+
+.message-action-button {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.message-action-button:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+/* Scrollable content */
+.scrollable-content {
+    overflow-y: auto;
+}
+
+.scrollable-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 3px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border);
+    border-radius: 3px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Enhanced message layout */
+.user-message {
+    align-items: flex-end;
+}
+
+.user-message .message-wrapper {
+    align-self: flex-end;
+    max-width: 85%;
+}
+
+.assistant-message {
+    align-items: flex-start;
+}
+
+.assistant-message .message-wrapper {
+    align-self: flex-start;
+    max-width: 90%;
+}
+
+.system-message {
+    align-items: center;
+}
+
+.system-message .message-wrapper {
+    max-width: 95%;
+    align-self: center;
+}
+
+/* Better spacing for rich content */
+.message-content > *:first-child {
+    margin-top: 0;
+}
+
+.message-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Code with line numbers */
+.code-with-lines {
+    counter-reset: line-number;
+}
+
+.code-with-lines code {
+    counter-increment: line-number;
+}
+
+.code-with-lines code::before {
+    content: counter(line-number);
+    color: var(--text-muted);
+    width: 2em;
+    display: inline-block;
+    text-align: right;
+    margin-right: 1em;
+    border-right: 1px solid var(--background-modifier-border);
+    padding-right: 0.5em;
+    user-select: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+    .message-content {
+        max-width: 95%;
+        padding: 10px 12px;
+    }
+
+    .message-actions {
+        position: static;
+        opacity: 1;
+        margin-top: 8px;
+        align-self: flex-end;
+    }
+
+    .chat-table {
+        font-size: 12px;
+    }
+
+    .code-language-label {
+        position: static;
+        display: inline-block;
+        margin-bottom: 8px;
+    }
+}
+
+/* Scrollbar styling */
+.chat-history::-webkit-scrollbar,
+.tools-panel::-webkit-scrollbar,
+.knowledge-panel::-webkit-scrollbar {
+    width: 10px;
+}
+
+.chat-history::-webkit-scrollbar-track,
+.tools-panel::-webkit-scrollbar-track,
+.knowledge-panel::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 5px;
+}
+
+.chat-history::-webkit-scrollbar-thumb,
+.tools-panel::-webkit-scrollbar-thumb,
+.knowledge-panel::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border);
+    border-radius: 5px;
+    border: 2px solid var(--background-secondary);
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover,
+.tools-panel::-webkit-scrollbar-thumb:hover,
+.knowledge-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Enhanced scrollbar for chat specifically */
+.chat-history::-webkit-scrollbar-thumb:active {
+    background: var(--interactive-accent);
+}
+
+/* Scroll to bottom button (appears when not at bottom) */
+.scroll-to-bottom {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    box-shadow: var(--shadow-s);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.scroll-to-bottom.visible {
+    opacity: 1;
+}
+
+.scroll-to-bottom:hover {
+    background: var(--interactive-accent-hover);
+    transform: scale(1.05);
+}
+
+/* Tool Approval Modal Styles */
+.tool-approval-warning {
+    background: var(--background-modifier-error);
+    border: 1px solid var(--color-red);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.warning-text {
+    color: var(--color-red);
+    font-weight: 500;
+}
+
+.tool-details {
+    background: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.tool-info {
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+
+.tool-params {
+    background: var(--background-primary);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.param-item {
+    margin-bottom: 8px;
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
+
+.param-item:last-child {
+    margin-bottom: 0;
+}
+
+.action-preview {
+    border-top: 1px solid var(--background-modifier-border);
+    padding-top: 16px;
+    margin-top: 16px;
+}
+
+.action-description p {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: var(--background-primary-alt);
+    border-radius: 6px;
+    border-left: 3px solid var(--interactive-accent);
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    padding: 12px;
+    background: var(--background-secondary);
+    border-radius: 6px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    margin: 0;
+}
+
+.modal-button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}

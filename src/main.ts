@@ -1,99 +1,253 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, WorkspaceLeaf} from 'obsidian';
+import {DEFAULT_SETTINGS, CopilotConfig, CopilotSettingTab} from "./settings";
+import {LLMService} from "./services/LLMService";
+import {DocumentService} from "./services/DocumentService";
+import {ConversationService} from "./services/ConversationService";
+import {CopilotView, COPILOT_VIEW_TYPE} from "./views/CopilotView";
+import {ToolExecutor} from "./mcp/ToolExecutor";
+import {FunctionCallHandler} from "./ai/FunctionCallHandler";
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class CopilotPlugin extends Plugin {
+	settings: CopilotConfig;
+	llmService: LLMService;
+	documentService: DocumentService;
+	conversationService: ConversationService;
+	toolExecutor: ToolExecutor;
+	functionCallHandler: FunctionCallHandler;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+		// Initialize services
+		this.llmService = new LLMService(this.settings);
+		this.documentService = new DocumentService(this.app, this.llmService);
+		this.conversationService = new ConversationService(this.app, this);
+		this.toolExecutor = new ToolExecutor(this.app, this);
+		this.functionCallHandler = new FunctionCallHandler(this, this.toolExecutor);
+
+		// Initialize conversation service and tool executor
+		await this.conversationService.initialize();
+		await this.toolExecutor.initialize();
+
+		// Register the copilot view
+		this.registerView(
+			COPILOT_VIEW_TYPE,
+			(leaf) => new CopilotView(leaf, this)
+		);
+
+		// Create ribbon icon for opening the copilot panel
+		this.addRibbonIcon('brain-circuit', 'AI Copilot', () => {
+			this.activateView();
 		});
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
+		// Add commands for AI operations
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
+			id: 'open-copilot-panel',
+			name: 'Open AI Copilot Panel',
 			callback: () => {
-				new SampleModal(this.app).open();
+				this.activateView();
 			}
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
+
+		//Could be removed, we dont need this one.
 		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
+			id: 'analyze-document',
+			name: 'Analyze Current Document',
+			callback: async () => {
+				try {
+					const analysis = await this.documentService.analyzeActiveDocument();
+					if (analysis) {
+						new Notice(`Document analysis: ${analysis.wordCount} words, ${analysis.paragraphs} paragraphs`);
 					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+				} catch (error: any) {
+					new Notice(`Analysis failed: ${error.message}`);
 				}
-				return false;
 			}
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
+		//this is also a p2 requirement.
+		this.addCommand({
+			id: 'improve-selection',
+			name: 'Improve Selected Text',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				try {
+					const improved = await this.documentService.improveText();
+					this.documentService.replaceSelection(improved);
+					new Notice('Text improved!');
+				} catch (error: any) {
+					new Notice(`Improvement failed: ${error.message}`);
+				}
+			}
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		//Did not understand what it is, how it will help the users
+		//Will pick this in the next iteration.
+		this.addCommand({
+			id: 'continue-writing',
+			name: 'Continue Writing',
+			editorCallback: async (editor: Editor, view: MarkdownView) => {
+				try {
+					const continuation = await this.documentService.continueText();
+					this.documentService.insertAtCursor('\n' + continuation);
+					new Notice('Text continued!');
+				} catch (error: any) {
+					new Notice(`Continuation failed: ${error.message}`);
+				}
+			}
+		});
 
+
+		//This could be use full, but - need to understand how do we send the mcp and tool setting to the llm.
+		this.addCommand({
+			id: 'summarize-document',
+			name: 'Summarize Document',
+			callback: async () => {
+				try {
+					const summary = await this.documentService.summarizeDocument();
+					// TODO: Display summary in copilot panel once implemented
+					new Notice('Summary generated (check copilot panel)');
+				} catch (error: any) {
+					new Notice(`Summarization failed: ${error.message}`);
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'generate-tags',
+			name: 'Generate Tags',
+			callback: async () => {
+				try {
+					const tags = await this.documentService.generateTags();
+					const tagString = tags.map(tag => `#${tag}`).join(' ');
+					new Notice(`Suggested tags: ${tagString}`);
+				} catch (error: any) {
+					new Notice(`Tag generation failed: ${error.message}`);
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'test-llm-connection',
+			name: 'Test LLM Connection',
+			callback: async () => {
+				try {
+					new Notice('Testing connection...');
+					const isConnected = await this.llmService.testConnection();
+					new Notice(isConnected ? 'Connection successful!' : 'Connection failed!');
+				} catch (error: any) {
+					new Notice(`Connection test failed: ${error.message}`);
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'test-vault-tools',
+			name: 'Test Vault Tools',
+			callback: async () => {
+				try {
+					const success = await this.toolExecutor.testToolExecution();
+					if (success) {
+						new Notice('✅ Vault tools are working correctly!');
+					}
+				} catch (error: any) {
+					new Notice(`Vault tools test failed: ${error.message}`);
+				}
+			}
+		});
+
+		this.addCommand({
+			id: 'show-vault-tools-help',
+			name: 'Show Available Vault Tools',
+			callback: () => {
+				const help = this.toolExecutor.getToolsHelp();
+				// Create a new note with the help content
+				this.app.vault.create(`Vault Tools Help - ${new Date().toISOString().split('T')[0]}.md`, help)
+					.then(() => {
+						new Notice('Created help file with available vault tools');
+					})
+					.catch(() => {
+						new Notice('Failed to create help file');
+					});
+			}
+		});
+
+		this.addCommand({
+			id: 'show-tool-stats',
+			name: 'Show Tool Usage Statistics',
+			callback: () => {
+				const stats = this.toolExecutor.getToolStats();
+				const message = `Tool Statistics:
+📊 Total Tools: ${stats.totalTools} (${stats.safeTools} safe, ${stats.sensitiveTools} sensitive)
+🔧 Total Executions: ${stats.totalExecutions}
+✅ Successful: ${stats.successfulExecutions}
+❌ Failed: ${stats.failedExecutions}
+🚫 Denied: ${stats.deniedExecutions}
+📅 Recent (24h): ${stats.recentExecutions}`;
+
+				new Notice(message);
+			}
+		});
+
+		this.addCommand({
+			id: 'test-function-calling',
+			name: 'Test Function Calling',
+			callback: async () => {
+				try {
+					await this.functionCallHandler.testFunctionCalling();
+				} catch (error: any) {
+					new Notice(`Function calling test failed: ${error.message}`);
+				}
+			}
+		});
+
+		// Add settings tab
+		this.addSettingTab(new CopilotSettingTab(this.app, this));
 	}
 
 	onunload() {
+		// Clean up services
+		if (this.llmService) {
+			this.llmService.abort();
+		}
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<CopilotConfig>);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
+		// Update services with new settings
+		if (this.llmService) {
+			this.llmService.updateConfig(this.settings);
+		}
 	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	async activateView() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(COPILOT_VIEW_TYPE);
+
+		if (leaves.length > 0) {
+			// A copilot view already exists, use it
+			leaf = leaves[0] || null;
+		} else {
+			// Create new leaf in the right sidebar
+			const rightLeaf = workspace.getRightLeaf(false);
+			if (rightLeaf) {
+				leaf = rightLeaf;
+				await leaf.setViewState({
+					type: COPILOT_VIEW_TYPE,
+					active: true,
+				});
+			}
+		}
+
+		// Reveal the leaf
+		if (leaf) {
+			workspace.revealLeaf(leaf);
+		}
 	}
 }
