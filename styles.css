@@ -3,17 +3,21 @@
 /* Main container */
 .copilot-view {
     height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
 }
 
 .copilot-container {
     height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
     padding: 0;
     overflow: hidden;
+    min-height: 0;
 }
 
 /* Header styles */
@@ -97,6 +101,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 100%;
 }
 
 .content-panel {
@@ -104,6 +109,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
 }
 
 /* Chat interface styles */
@@ -112,7 +118,33 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    min-height: 0;
+	flex: 1;
+    /* overflow: hidden; */
+}
+
+/* Ensure the chat input stays pinned to the bottom of the panel */
+.chat-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+}
+
+.chat-layout .chat-input-area {
+    margin-top: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 5;
+}
+
+.no-shrink {
+    flex-shrink: 0;
 }
 
 .chat-history {
@@ -120,6 +152,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 16px;
+    padding-bottom: 140px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -133,7 +166,9 @@
 .message {
     display: flex;
     flex-direction: column;
-    margin-bottom: 16px;
+    flex: 1;
+    height: 100%;
+    /* margin-bottom: 16px; */
 }
 
 .user-message {
@@ -149,7 +184,10 @@
 }
 
 .message-content {
-    max-width: 85%;
+    max-width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     padding: 12px 16px;
     border-radius: 12px;
     font-size: 14px;
@@ -202,6 +240,7 @@
     border-top: 1px solid var(--background-modifier-border);
     padding: 16px;
     background: var(--background-primary);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .input-container {
@@ -438,7 +477,8 @@
 
 /* Rich content styling */
 .message-content {
-    max-width: 85%;
+    max-width: 100%;
+    height: 100%;
     padding: 12px 16px;
     border-radius: 12px;
     font-size: 14px;

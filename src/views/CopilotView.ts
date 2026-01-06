@@ -8,7 +8,7 @@ export const COPILOT_VIEW_TYPE = 'copilot-view';
 export class CopilotView extends ItemView {
     plugin: CopilotPlugin;
     private viewContainerEl: HTMLElement;
-    private activeTab: 'chat' | 'tools' | 'knowledge' = 'chat';
+    // private activeTab: 'chat' | 'tools' | 'knowledge' = 'chat';
     private messageRenderer: MessageRenderer;
 
     constructor(leaf: WorkspaceLeaf, plugin: CopilotPlugin) {
@@ -99,24 +99,8 @@ export class CopilotView extends ItemView {
         // Check connection status
         this.updateConnectionStatus(statusDot, statusText).catch((error) => {
             console.error('Failed to update connection status:', error);
-        });
-
-        // Tab navigation
-        const tabNav = header.createDiv('copilot-tabs');
-
-        const chatTab = tabNav.createDiv('tab-button');
-        chatTab.setText('Chat');
-        chatTab.addEventListener('click', () => this.switchToTab('chat'));
-
-        const toolsTab = tabNav.createDiv('tab-button');
-        toolsTab.setText('Tools');
-        toolsTab.addEventListener('click', () => this.switchToTab('tools'));
-
-        if (this.plugin.settings.enableKnowledgeBase) {
-            const knowledgeTab = tabNav.createDiv('tab-button');
-            knowledgeTab.setText('Knowledge');
-            knowledgeTab.addEventListener('click', () => this.switchToTab('knowledge'));
-        }
+		});
+		
     }
 
     private createContentArea(): void {
@@ -125,16 +109,7 @@ export class CopilotView extends ItemView {
         // Chat content
         const chatContent = contentArea.createDiv('content-panel chat-panel active');
         this.createChatInterface(chatContent);
-
-        // Tools content
-        const toolsContent = contentArea.createDiv('content-panel tools-panel hidden');
-        this.createToolsInterface(toolsContent);
-
-        // Knowledge content (if enabled)
-        if (this.plugin.settings.enableKnowledgeBase) {
-            const knowledgeContent = contentArea.createDiv('content-panel knowledge-panel hidden');
-            this.createKnowledgeInterface(knowledgeContent);
-        }
+		
     }
 
     private createChatInterface(container: HTMLElement): void {
@@ -149,7 +124,7 @@ export class CopilotView extends ItemView {
         const welcomeMsg = chatHistory.createDiv('message system-message');
         welcomeMsg.innerHTML = `
             <div class="message-content">
-                <p>👋 Welcome to AI Copilot!</p>
+                <p>👋 Welcome to your AI Copilot!</p>
                 <p>I can help you with:</p>
                 <ul>
                     <li>Writing and editing text</li>
@@ -161,7 +136,7 @@ export class CopilotView extends ItemView {
             </div>
         `;
 
-        // Input area
+        // Input area (positioned at bottom of parent container)
         const inputArea = container.createDiv('chat-input-area');
         inputArea.addClass('no-shrink');
 
@@ -302,7 +277,7 @@ export class CopilotView extends ItemView {
     }
 
     private switchToTab(tab: 'chat' | 'tools' | 'knowledge'): void {
-        this.activeTab = tab;
+        // this.activeTab = tab;
 
         // Update tab buttons
         const tabs = this.viewContainerEl.querySelectorAll('.tab-button');

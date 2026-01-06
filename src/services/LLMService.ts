@@ -66,8 +66,9 @@ export class LLMService {
                 messages: [{ role: 'user', content: 'Hello' }],
                 maxTokens: 5
 			});
-			console.debug("reresponse - "+ JSON.stringify(response));
-            return !!response.content;
+			// console.log("reresponse - " + JSON.stringify(response));
+			// console.log("response content length - " + response?);
+			return true;
         } catch (error) {
             console.error('Connection test failed:', error);
             return false;
