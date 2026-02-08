@@ -1,4 +1,4 @@
-import { App, TFile, TFolder, normalizePath, FileManager } from 'obsidian';
+import { App, TFile, TFolder, normalizePath, MarkdownView } from 'obsidian';
 import CopilotPlugin from '../main';
 
 export interface VaultTool {
@@ -134,6 +134,13 @@ export class VaultToolProvider {
             safe: true
         });
 
+        this.registerTool({
+            name: 'get_active_document',
+            description: 'Get content from the currently active document (selection-first)',
+            parameters: [],
+            safe: true
+        });
+
         // Sensitive tools (require approval)
         this.registerTool({
             name: 'create_file',
@@ -151,6 +158,34 @@ export class VaultToolProvider {
                     description: 'Initial content for the file',
                     required: false,
                     default: ''
+                }
+            ],
+            safe: false
+        });
+
+        this.registerTool({
+            name: 'replace_selection',
+            description: 'Replace the current editor selection with new content',
+            parameters: [
+                {
+                    name: 'content',
+                    type: 'string',
+                    description: 'Content to insert into the current selection',
+                    required: true
+                }
+            ],
+            safe: false
+        });
+
+        this.registerTool({
+            name: 'replace_active_document',
+            description: 'Replace the full content of the active document',
+            parameters: [
+                {
+                    name: 'content',
+                    type: 'string',
+                    description: 'New full document content',
+                    required: true
                 }
             ],
             safe: false
@@ -304,12 +339,18 @@ export class VaultToolProvider {
                     return await this.getFileMetadata(parameters.path);
                 case 'search_content':
                     return await this.searchContent(parameters.query, parameters.file_pattern);
+                case 'get_active_document':
+                    return await this.getActiveDocument();
                 case 'create_file':
                     return await this.createFile(parameters.path, parameters.content);
                 case 'update_file':
                     return await this.updateFile(parameters.path, parameters.content);
                 case 'append_to_file':
                     return await this.appendToFile(parameters.path, parameters.content);
+                case 'replace_selection':
+                    return await this.replaceSelection(parameters.content);
+                case 'replace_active_document':
+                    return await this.replaceActiveDocument(parameters.content);
                 case 'rename_file':
                     return await this.renameFile(parameters.old_path, parameters.new_path);
                 case 'delete_file':
@@ -595,6 +636,55 @@ export class VaultToolProvider {
         }
     }
 
+    private async getActiveDocument(): Promise<VaultToolResult> {
+        try {
+            const activeFile = this.app.workspace.getActiveFile();
+            if (!activeFile) {
+                return {
+                    success: false,
+                    error: 'No active document found'
+                };
+            }
+
+            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            const editor = view?.editor;
+            const selectionText = editor?.getSelection() || '';
+            const hasSelection = selectionText.trim().length > 0;
+
+            let selectionRange: Record<string, number> | undefined;
+            if (editor && hasSelection) {
+                const selectionStart = editor.getCursor('from');
+                const selectionEnd = editor.getCursor('to');
+                const cursor = editor.getCursor();
+                selectionRange = {
+                    start: editor.posToOffset(selectionStart),
+                    end: editor.posToOffset(selectionEnd),
+                    line: cursor.line,
+                    ch: cursor.ch
+                };
+            }
+
+            const content = await this.app.vault.read(activeFile);
+
+            return {
+                success: true,
+                data: {
+                    path: activeFile.path,
+                    content: hasSelection ? selectionText : content,
+                    contentType: hasSelection ? 'selection' : 'full',
+                    selection: hasSelection ? selectionText : undefined,
+                    selectionRange: selectionRange
+                },
+                message: `Read active document: ${activeFile.path}`
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: `Failed to get active document: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
+    }
+
     private async createFile(path: string, content: string = ''): Promise<VaultToolResult> {
         try {
             const normalizedPath = normalizePath(path);
@@ -699,6 +789,71 @@ export class VaultToolProvider {
         }
     }
 
+    private async replaceSelection(content: string): Promise<VaultToolResult> {
+        try {
+            const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+            const editor = view?.editor;
+            if (!editor) {
+                return {
+                    success: false,
+                    error: 'No active editor found'
+                };
+            }
+
+            const selectionText = editor.getSelection();
+            if (!selectionText || selectionText.trim().length === 0) {
+                return {
+                    success: false,
+                    error: 'No active selection found'
+                };
+            }
+
+            editor.replaceSelection(content);
+
+            return {
+                success: true,
+                data: {
+                    selectionLength: selectionText.length,
+                    insertedLength: content.length
+                },
+                message: 'Replaced current selection'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: `Failed to replace selection: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
+    }
+
+    private async replaceActiveDocument(content: string): Promise<VaultToolResult> {
+        try {
+            const activeFile = this.app.workspace.getActiveFile();
+            if (!activeFile) {
+                return {
+                    success: false,
+                    error: 'No active document found'
+                };
+            }
+
+            await this.app.vault.modify(activeFile, content);
+
+            return {
+                success: true,
+                data: {
+                    path: activeFile.path,
+                    size: content.length
+                },
+                message: `Replaced active document: ${activeFile.path}`
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: `Failed to replace active document: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
+    }
+
     private async renameFile(oldPath: string, newPath: string): Promise<VaultToolResult> {
         try {
             const file = this.app.vault.getAbstractFileByPath(normalizePath(oldPath));
@@ -748,7 +903,7 @@ export class VaultToolProvider {
                 };
             }
 
-            await this.app.vault.trash(file, true);
+            await this.app.fileManager.trashFile(file);
 
             return {
                 success: true,

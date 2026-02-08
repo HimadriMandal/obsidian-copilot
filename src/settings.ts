@@ -19,6 +19,7 @@ export interface CopilotConfig {
 	enableKnowledgeBase: boolean;
 	enableAdvancedTools: boolean;
 	enableVaultTools: boolean;
+	includeActiveNoteContext: boolean;
 
 	// Conversation Settings
 	conversationHistory: boolean;
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: CopilotConfig = {
 	enableKnowledgeBase: true,
 	enableAdvancedTools: true,
 	enableVaultTools: true,
+	includeActiveNoteContext: true,
 	conversationHistory: true,
 	maxHistoryLength: 100
 }
@@ -199,6 +201,16 @@ export class CopilotSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.enableVaultTools)
 				.onChange(async (value: boolean) => {
 					this.plugin.settings.enableVaultTools = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Include active note context')
+			.setDesc('Include selection or note content when sending chat messages')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.includeActiveNoteContext)
+				.onChange(async (value: boolean) => {
+					this.plugin.settings.includeActiveNoteContext = value;
 					await this.plugin.saveSettings();
 				}));
 

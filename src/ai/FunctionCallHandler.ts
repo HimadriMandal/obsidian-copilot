@@ -1,5 +1,5 @@
 import { ToolCall } from '../services/LLMService';
-import { ToolExecutor, ToolCall as VaultToolCall } from '../mcp/ToolExecutor';
+import { ToolExecutor, ToolCall as VaultToolCall, ToolStats } from '../mcp/ToolExecutor';
 import { Notice } from 'obsidian';
 import CopilotPlugin from '../main';
 
@@ -189,7 +189,7 @@ export class FunctionCallHandler {
      * Get tool statistics for user
      */
     getToolStats(): string {
-        const stats = this.toolExecutor.getToolStats() as Record<string, number>;
+        const stats: ToolStats = this.toolExecutor.getToolStats();
         return `🔧 Vault Tools Status:
 • Available: ${stats.totalTools} tools (${stats.safeTools} safe, ${stats.sensitiveTools} sensitive)
 • Executions: ${stats.totalExecutions} total, ${stats.successfulExecutions} successful

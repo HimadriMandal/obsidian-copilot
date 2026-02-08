@@ -50,6 +50,12 @@ export class ConversationService {
 
     async initialize(): Promise<void> {
         try {
+            if (!this.isPersistenceEnabled()) {
+                await this.purgeStoredConversations();
+                await this.createNewConversation();
+                return;
+            }
+
             await this.loadConversations();
             // Create default conversation if none exist
             if (this.conversations.size === 0) {
@@ -320,9 +326,6 @@ export class ConversationService {
         this.conversations.clear();
         this.currentConversationId = null;
 
-        // Create a new default conversation
-        await this.createNewConversation();
-
         // Clear storage
         try {
             const adapter = this.app.vault.adapter;
@@ -336,11 +339,36 @@ export class ConversationService {
         } catch (error) {
             console.warn('Failed to clear conversation files:', error);
         }
+
+        // Create a new default conversation
+        await this.createNewConversation();
+    }
+
+    async purgeStoredConversations(): Promise<void> {
+        this.conversations.clear();
+        this.currentConversationId = null;
+
+        try {
+            const adapter = this.app.vault.adapter;
+            const conversationsDir = `${this.plugin.manifest.dir}/conversations`;
+            if (await adapter.exists(conversationsDir)) {
+                const files = await adapter.list(conversationsDir);
+                for (const file of files.files) {
+                    await adapter.remove(file);
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to purge stored conversations:', error);
+        }
     }
 
     // Private methods
 
     private async loadConversations(): Promise<void> {
+        if (!this.isPersistenceEnabled()) {
+            return;
+        }
+
         try {
             const adapter = this.app.vault.adapter;
             const indexPath = `${this.plugin.manifest.dir}/conversations/index.json`;
@@ -362,6 +390,10 @@ export class ConversationService {
     }
 
     private async loadConversation(conversationId: string): Promise<void> {
+        if (!this.isPersistenceEnabled()) {
+            return;
+        }
+
         try {
             const adapter = this.app.vault.adapter;
             const conversationPath = `${this.plugin.manifest.dir}/conversations/${conversationId}.json`;
@@ -377,6 +409,10 @@ export class ConversationService {
     }
 
     private async saveConversation(conversationId: string): Promise<void> {
+        if (!this.isPersistenceEnabled()) {
+            return;
+        }
+
         const conversation = this.conversations.get(conversationId);
         if (!conversation) return;
 
@@ -398,6 +434,10 @@ export class ConversationService {
     }
 
     private async saveConversationIndex(): Promise<void> {
+        if (!this.isPersistenceEnabled()) {
+            return;
+        }
+
         try {
             const adapter = this.app.vault.adapter;
             const conversationsDir = `${this.plugin.manifest.dir}/conversations`;
@@ -464,5 +504,9 @@ export class ConversationService {
         }
 
         return title;
+    }
+
+    private isPersistenceEnabled(): boolean {
+        return false;
     }
 }

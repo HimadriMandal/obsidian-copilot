@@ -1,6 +1,7 @@
 import { App, Notice } from 'obsidian';
 import { VaultToolProvider, VaultTool, VaultToolResult } from './VaultToolProvider';
 import CopilotPlugin from '../main';
+import { ToolApprovalModal } from '../ui/ToolApprovalModal';
 
 export interface ToolExecutionContext {
     userId?: string;
@@ -18,6 +19,17 @@ export interface ToolCall {
 export interface ToolExecutionResult extends VaultToolResult {
     toolName: string;
     executionTime: number;
+}
+
+export interface ToolStats {
+    totalTools: number;
+    safeTools: number;
+    sensitiveTools: number;
+    totalExecutions: number;
+    successfulExecutions: number;
+    failedExecutions: number;
+    deniedExecutions: number;
+    recentExecutions: number;
 }
 
 interface ToolExecutionLogEntry {
@@ -59,6 +71,20 @@ export class ToolExecutor {
                     error: `Unknown tool: ${toolCall.name}`,
                     executionTime: Date.now() - startTime
                 };
+            }
+
+            if (!tool.safe) {
+                const approved = await this.requestApproval(tool, toolCall.parameters);
+                if (!approved) {
+                    this.recordExecution(toolCall.name, 'failed', 'User denied approval');
+                    return {
+                        toolName: toolCall.name,
+                        success: false,
+                        error: 'User denied approval',
+                        message: 'User denied approval',
+                        executionTime: Date.now() - startTime
+                    };
+                }
             }
 
             const result = await this.executeToolDirectly(tool, toolCall.parameters);
@@ -177,7 +203,7 @@ export class ToolExecutor {
     /**
      * Get tool statistics
      */
-    getToolStats(): any {
+    getToolStats(): ToolStats {
         const tools = this.vaultToolProvider.getAvailableTools();
         const auditLog = this.executionLog;
 
@@ -221,6 +247,17 @@ export class ToolExecutor {
         }
 
         return schema;
+    }
+
+    private async requestApproval(tool: VaultTool, parameters: Record<string, any>): Promise<boolean> {
+        return await new Promise(resolve => {
+            const modal = new ToolApprovalModal(this.app, {
+                toolName: tool.name,
+                description: tool.description,
+                parameters
+            }, resolve);
+            modal.open();
+        });
     }
 
     /**

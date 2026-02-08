@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import CopilotPlugin from '../main';
 import { ChatMessage, StreamChunk, ToolCall } from '../services/LLMService';
+import { ActiveDocumentContext } from '../services/DocumentService';
 import { MessageRenderer } from '../ui/MessageRenderer';
 
 export const COPILOT_VIEW_TYPE = 'copilot-view';
@@ -120,21 +121,7 @@ export class CopilotView extends ItemView {
         chatHistory.id = 'copilot-chat-history';
         chatHistory.addClass('chat-history-scrollable');
 
-        // Welcome message
-        const welcomeMsg = chatHistory.createDiv('message system-message');
-        welcomeMsg.innerHTML = `
-            <div class="message-content">
-                <p>👋 Welcome to your AI Copilot!</p>
-                <p>I can help you with:</p>
-                <ul>
-                    <li>Writing and editing text</li>
-                    <li>Analyzing your documents</li>
-                    <li>Generating summaries and tags</li>
-                    <li>Organizing your knowledge base</li>
-                </ul>
-                <p>Start by typing a message below or use the Tools tab for quick actions.</p>
-            </div>
-        `;
+        this.addWelcomeMessage(chatHistory);
 
         // Input area (positioned at bottom of parent container)
         const inputArea = container.createDiv('chat-input-area');
@@ -158,7 +145,9 @@ export class CopilotView extends ItemView {
         });
 
         const clearButton = buttonContainer.createEl('button', { text: 'Clear' });
-        clearButton.addEventListener('click', () => this.clearChat());
+        clearButton.addEventListener('click', () => {
+            void this.clearChat();
+        });
 
         // Handle Enter key (Shift+Enter for new line, Enter to send)
         textarea.addEventListener('keydown', (event) => {
@@ -323,6 +312,14 @@ export class CopilotView extends ItemView {
                 // Get conversation context for LLM
                 let contextMessages: ChatMessage[] = this.plugin.conversationService.getMessagesForContext();
 
+                if (this.plugin.settings.includeActiveNoteContext) {
+                    const activeContext = await this.plugin.documentService.getActiveDocumentContext();
+                    if (activeContext) {
+                        const contextMessage = this.buildActiveDocumentContextMessage(activeContext);
+                        contextMessages = [contextMessage, ...contextMessages];
+                    }
+                }
+
                 // Add the current user message to context if not already included
                 const lastContextMessage = contextMessages[contextMessages.length - 1];
                 if (contextMessages.length === 0 || (lastContextMessage && lastContextMessage.content !== message)) {
@@ -468,6 +465,33 @@ export class CopilotView extends ItemView {
         return `🔧 Executing vault tools: ${toolNames}`;
     }
 
+    private buildActiveDocumentContextMessage(context: ActiveDocumentContext): ChatMessage {
+        const selectionLine = context.selectionRange
+            ? `Selection range: ${context.selectionRange.start}-${context.selectionRange.end} (line ${context.selectionRange.line}, ch ${context.selectionRange.ch}).`
+            : 'Selection range: none.';
+
+        const contentLabel = context.contentType === 'selection'
+            ? 'Selected content'
+            : 'Full document content';
+
+        const contentBlock = [
+            `Active note context (selection-first).`,
+            `Path: ${context.path}.`,
+            `Content type: ${context.contentType}.`,
+            selectionLine,
+            `If you need to edit the note, use the vault tools like replace_selection or replace_active_document.`,
+            `${contentLabel}:`,
+            '```markdown',
+            context.content,
+            '```'
+        ].join('\n');
+
+        return {
+            role: 'system',
+            content: contentBlock
+        };
+    }
+
     private async addMessageToChat(role: 'user' | 'assistant' | 'system' | 'tool', content: string): Promise<void> {
         const chatHistory = this.viewContainerEl.querySelector('#copilot-chat-history');
         if (!chatHistory) return;
@@ -546,10 +570,29 @@ export class CopilotView extends ItemView {
         }
     }
 
-    private clearChat(): void {
+    private addWelcomeMessage(chatHistory: HTMLElement): void {
+        const welcomeMsg = chatHistory.createDiv('message system-message');
+        welcomeMsg.innerHTML = `
+            <div class="message-content">
+                <p>👋 Welcome to your AI Copilot!</p>
+                <p>I can help you with:</p>
+                <ul>
+                    <li>Writing and editing text</li>
+                    <li>Analyzing your documents</li>
+                    <li>Generating summaries and tags</li>
+                    <li>Organizing your knowledge base</li>
+                </ul>
+                <p>Start by typing a message below or use the Tools tab for quick actions.</p>
+            </div>
+        `;
+    }
+
+    private async clearChat(): Promise<void> {
+        await this.plugin.conversationService.clearAllConversations();
         const chatHistory = this.viewContainerEl.querySelector('#copilot-chat-history');
         if (chatHistory) {
             chatHistory.empty();
+            this.addWelcomeMessage(chatHistory as HTMLElement);
         }
     }
 

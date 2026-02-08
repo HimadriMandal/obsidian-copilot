@@ -135,12 +135,7 @@
 
 .chat-layout .chat-input-area {
     margin-top: auto;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 5;
+    flex-shrink: 0;
 }
 
 .no-shrink {
@@ -152,7 +147,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 16px;
-    padding-bottom: 140px;
+    padding-bottom: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -166,8 +161,6 @@
 .message {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    height: 100%;
     /* margin-bottom: 16px; */
 }
 

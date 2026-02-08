@@ -37,7 +37,7 @@ export default class CopilotPlugin extends Plugin {
 
 		// Create ribbon icon for opening the copilot panel
 		this.addRibbonIcon('brain-circuit', 'AI Copilot', () => {
-			this.activateView();
+			void this.activateView();
 		});
 
 		// Add commands for AI operations
@@ -45,7 +45,7 @@ export default class CopilotPlugin extends Plugin {
 			id: 'open-copilot-panel',
 			name: 'Open AI Copilot Panel',
 			callback: () => {
-				this.activateView();
+				void this.activateView();
 			}
 		});
 
@@ -209,6 +209,10 @@ export default class CopilotPlugin extends Plugin {
 		if (this.llmService) {
 			this.llmService.abort();
 		}
+
+		if (this.conversationService) {
+			void this.conversationService.purgeStoredConversations();
+		}
 	}
 
 	async loadSettings() {
@@ -247,7 +251,7 @@ export default class CopilotPlugin extends Plugin {
 
 		// Reveal the leaf
 		if (leaf) {
-			workspace.revealLeaf(leaf);
+			await workspace.revealLeaf(leaf);
 		}
 	}
 }

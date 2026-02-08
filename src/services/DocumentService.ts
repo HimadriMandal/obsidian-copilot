@@ -20,6 +20,19 @@ export interface TextSelection {
     ch: number;
 }
 
+export interface ActiveDocumentContext {
+    path: string;
+    content: string;
+    contentType: 'selection' | 'full';
+    selection?: string;
+    selectionRange?: {
+        start: number;
+        end: number;
+        line: number;
+        ch: number;
+    };
+}
+
 export class DocumentService {
     private app: App;
     private llmService: LLMService;
@@ -132,6 +145,54 @@ export class DocumentService {
             end: editor.posToOffset(selectionEnd),
             line: cursor.line,
             ch: cursor.ch
+        };
+    }
+
+    /**
+     * Get active document context (selection-first)
+     */
+    async getActiveDocumentContext(): Promise<ActiveDocumentContext | null> {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile) {
+            return null;
+        }
+
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const editor = view?.editor;
+        let selection: TextSelection | null = null;
+
+        if (editor) {
+            const selectionText = editor.getSelection();
+            if (selectionText && selectionText.trim().length > 0) {
+                const cursor = editor.getCursor();
+                const selectionStart = editor.getCursor('from');
+                const selectionEnd = editor.getCursor('to');
+                selection = {
+                    text: selectionText,
+                    start: editor.posToOffset(selectionStart),
+                    end: editor.posToOffset(selectionEnd),
+                    line: cursor.line,
+                    ch: cursor.ch
+                };
+            }
+        }
+
+        const fullContent = await this.app.vault.read(activeFile);
+        const content = selection ? selection.text : fullContent;
+
+        return {
+            path: activeFile.path,
+            content,
+            contentType: selection ? 'selection' : 'full',
+            selection: selection?.text,
+            selectionRange: selection
+                ? {
+                    start: selection.start,
+                    end: selection.end,
+                    line: selection.line,
+                    ch: selection.ch
+                }
+                : undefined
         };
     }
 
