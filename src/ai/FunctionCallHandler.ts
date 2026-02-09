@@ -1,11 +1,11 @@
-import { ToolCall } from '../services/LLMService';
-import { ToolExecutor, ToolCall as VaultToolCall, ToolStats } from '../mcp/ToolExecutor';
+import { ChatMessage, ToolCall, LLMToolDefinition } from '../services/LLMService';
+import { ToolExecutor, ToolCall as VaultToolCall, ToolStats, ToolExecutionResult } from '../mcp/ToolExecutor';
 import { Notice } from 'obsidian';
 import CopilotPlugin from '../main';
 
 export interface FunctionCallResult {
     success: boolean;
-    results: any[];
+    results: ToolExecutionResult[];
     error?: string;
 }
 
@@ -55,12 +55,12 @@ export class FunctionCallHandler {
     /**
      * Format function call results for LLM context
      */
-    formatResultsForLLM(toolCalls: ToolCall[], results: any[]): Record<string, unknown>[] {
+    formatResultsForLLM(toolCalls: ToolCall[], results: ToolExecutionResult[]): Record<string, unknown>[] {
         const formattedMessages: Record<string, unknown>[] = [];
 
         for (let i = 0; i < toolCalls.length; i++) {
             const toolCall = toolCalls[i];
-            const result = results[i] as Record<string, unknown> | undefined;
+            const result = results[i];
 
             if (!toolCall) continue; // Skip if toolCall is undefined
 
@@ -116,17 +116,17 @@ export class FunctionCallHandler {
     /**
      * Get available tools for LLM function calling
      */
-    getAvailableToolsForLLM(): any[] {
+    getAvailableToolsForLLM(): LLMToolDefinition[] {
         return this.toolExecutor.getToolsForLLM();
     }
 
     /**
      * Create a function call message for conversation history
      */
-    createFunctionCallMessage(toolCalls: ToolCall[]): any {
+    createFunctionCallMessage(toolCalls: ToolCall[]): ChatMessage {
         return {
             role: 'assistant',
-            content: null,
+            content: '',
             tool_calls: toolCalls
         };
     }
@@ -169,13 +169,6 @@ export class FunctionCallHandler {
                     conversationId: this.plugin.conversationService.getCurrentConversation()?.id
                 }
             }));
-    }
-
-    /**
-     * Generate error message for failed function calls
-     */
-    private generateErrorMessage(toolCall: ToolCall, error: string): string {
-        return `Failed to execute ${toolCall.function.name}: ${error}`;
     }
 
     /**

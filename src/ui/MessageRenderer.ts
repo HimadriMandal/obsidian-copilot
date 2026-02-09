@@ -433,7 +433,7 @@ export class MessageRenderer extends Component {
      * Cleanup when component is unloaded
      */
     onunload(): void {
-        // Cleanup any event listeners or resources
+        // Cleanup event listeners or resources
         super.onunload();
     }
 }

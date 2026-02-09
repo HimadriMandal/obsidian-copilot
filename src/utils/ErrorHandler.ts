@@ -3,7 +3,7 @@ import { Notice } from 'obsidian';
 export interface APIError {
     code: string;
     message: string;
-    details?: any;
+    details?: Record<string, unknown>;
 }
 
 export class ErrorHandler {
@@ -87,16 +87,19 @@ export class ErrorHandler {
         throw lastError!;
     }
 
-    static validateAPIResponse(response: any): boolean {
-        if (!response) {
+    static validateAPIResponse(response: unknown): boolean {
+        if (!response || typeof response !== 'object') {
             throw new Error('Empty response from API');
         }
 
-        if (response.error) {
-            const errorDetails = response.error as Record<string, any>;
-            const error = new Error((errorDetails.message as string) || 'Unknown API error');
-            (error as any).code = (errorDetails.code as string) || 'API_ERROR';
-            (error as any).details = errorDetails;
+        if ('error' in response && response.error) {
+            const errorDetails = response.error as Record<string, unknown>;
+            const error = new Error((errorDetails.message as string) || 'Unknown API error') as Error & {
+                code?: string;
+                details?: Record<string, unknown>;
+            };
+            error.code = (errorDetails.code as string) || 'API_ERROR';
+            error.details = errorDetails;
             throw error;
         }
 

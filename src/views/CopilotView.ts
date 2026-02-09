@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import CopilotPlugin from '../main';
-import { ChatMessage, StreamChunk, ToolCall } from '../services/LLMService';
-import { ActiveDocumentContext } from '../services/DocumentService';
+import { ChatMessage, StreamChunk, ToolCall, LLMToolDefinition } from '../services/LLMService';
+import { ActiveDocumentContext, DocumentAnalysis } from '../services/DocumentService';
 import { MessageRenderer } from '../ui/MessageRenderer';
 
 export const COPILOT_VIEW_TYPE = 'copilot-view';
@@ -158,113 +158,6 @@ export class CopilotView extends ItemView {
         });
     }
 
-    private createToolsInterface(container: HTMLElement): void {
-        const toolsTitle = container.createEl('h4', { text: 'Quick Actions' });
-
-        // Document analysis section
-        const docSection = container.createDiv('tool-section');
-        docSection.createEl('h5', { text: 'Document Analysis' });
-
-        const analyzeBtn = docSection.createEl('button', { text: 'Analyze Current Document' });
-        analyzeBtn.addClass('tool-button');
-        analyzeBtn.addEventListener('click', () => {
-            void (async () => {
-                try {
-                    const analysis = await this.plugin.documentService.analyzeActiveDocument();
-                    if (analysis) {
-                        await this.displayAnalysisResults(analysis);
-                    }
-                } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                    this.showError(`Analysis failed: ${errorMessage}`);
-                }
-            })();
-        });
-
-        const summarizeBtn = docSection.createEl('button', { text: 'Summarize Document' });
-        summarizeBtn.addClass('tool-button');
-        summarizeBtn.addEventListener('click', () => {
-            void (async () => {
-                try {
-                    const summary = await this.plugin.documentService.summarizeDocument();
-                    await this.displayResult('Document Summary', summary);
-                } catch (error: any) {
-                    this.showError(`Summarization failed: ${error.message}`);
-                }
-            })();
-        });
-
-        // Text editing section
-        const editSection = container.createDiv('tool-section');
-        editSection.createEl('h5', { text: 'Text Editing' });
-
-        const improveBtn = editSection.createEl('button', { text: 'Improve Selected Text' });
-        improveBtn.addClass('tool-button');
-        improveBtn.addEventListener('click', () => {
-            void (async () => {
-                try {
-                    const improved = await this.plugin.documentService.improveText();
-                    this.plugin.documentService.replaceSelection(improved);
-                    this.showSuccess('Text improved successfully!');
-                } catch (error: any) {
-                    this.showError(`Improvement failed: ${error.message}`);
-                }
-            })();
-        });
-
-        const continueBtn = editSection.createEl('button', { text: 'Continue Writing' });
-        continueBtn.addClass('tool-button');
-        continueBtn.addEventListener('click', () => {
-            void (async () => {
-                try {
-                    const continuation = await this.plugin.documentService.continueText();
-                    this.plugin.documentService.insertAtCursor('\\n' + continuation);
-                    this.showSuccess('Text continued successfully!');
-                } catch (error: any) {
-                    this.showError(`Continuation failed: ${error.message}`);
-                }
-            })();
-        });
-
-        // Tags and organization section
-        const orgSection = container.createDiv('tool-section');
-        orgSection.createEl('h5', { text: 'Organization' });
-
-        const tagsBtn = orgSection.createEl('button', { text: 'Generate Tags' });
-        tagsBtn.addClass('tool-button');
-        tagsBtn.addEventListener('click', () => {
-            void (async () => {
-                try {
-                    const tags = await this.plugin.documentService.generateTags();
-                    const tagString = tags.map(tag => `#${tag}`).join(' ');
-                    await this.displayResult('Suggested Tags', tagString);
-                } catch (error: any) {
-                    this.showError(`Tag generation failed: ${error.message}`);
-                }
-            })();
-        });
-
-        // Results area
-        const resultsArea = container.createDiv('tool-results');
-        resultsArea.id = 'copilot-tool-results';
-    }
-
-    private createKnowledgeInterface(container: HTMLElement): void {
-        const knowledgeTitle = container.createEl('h4', { text: 'Knowledge Base' });
-
-        const placeholder = container.createDiv('knowledge-placeholder');
-        placeholder.innerHTML = `
-            <p>📚 Knowledge Base features will be implemented in Phase 4.</p>
-            <p>Coming soon:</p>
-            <ul>
-                <li>Vault content analysis</li>
-                <li>Note relationship mapping</li>
-                <li>Content discovery</li>
-                <li>AI-powered organization</li>
-            </ul>
-        `;
-    }
-
     private switchToTab(tab: 'chat' | 'tools' | 'knowledge'): void {
         // this.activeTab = tab;
 
@@ -302,7 +195,6 @@ export class CopilotView extends ItemView {
 
         try {
             // Add user message to conversation and display
-            const userMessage = await this.plugin.conversationService.addMessage('user', message);
             void this.addMessageToChat('user', message);
 
             // Add loading indicator
@@ -373,16 +265,16 @@ export class CopilotView extends ItemView {
                     await this.plugin.conversationService.addMessage('assistant', response.content);
                 }
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 this.removeLoadingMessage(loadingId);
-                const errorMessage = `I apologize, but I encountered an error: ${error.message}`;
+                const errorMessage = `I apologize, but I encountered an error: ${this.getErrorMessage(error)}`;
                 void this.addMessageToChat('assistant', errorMessage);
 
                 // Save error message to conversation for context
                 await this.plugin.conversationService.addMessage('assistant', errorMessage);
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Chat error:', error);
             void this.addMessageToChat('assistant', `I apologize, but I encountered an unexpected error. Please try again.`);
         }
@@ -390,7 +282,7 @@ export class CopilotView extends ItemView {
 
     private async handleMessageWithVaultTools(
         initialContext: ChatMessage[],
-        tools: any[],
+        tools: LLMToolDefinition[],
         loadingId: string
     ): Promise<void> {
         let contextMessages = initialContext;
@@ -606,13 +498,13 @@ export class CopilotView extends ItemView {
                 statusDot.addClass('disconnected');
                 statusText.setText('Disconnected');
             }
-        } catch (error) {
+        } catch {
             statusDot.addClass('error');
             statusText.setText('Error');
         }
     }
 
-    private async displayAnalysisResults(analysis: any): Promise<void> {
+    private async displayAnalysisResults(analysis: DocumentAnalysis): Promise<void> {
         const content = `
             **Document Analysis Results:**
 
@@ -645,6 +537,18 @@ export class CopilotView extends ItemView {
             enableCodeCopy: true,
             showActions: false
         });
+    }
+
+    private getErrorMessage(error: unknown): string {
+        if (error instanceof Error) {
+            return error.message;
+        }
+
+        if (typeof error === 'string') {
+            return error;
+        }
+
+        return 'Unknown error';
     }
 
     private showSuccess(message: string): void {

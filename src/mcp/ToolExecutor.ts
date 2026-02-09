@@ -1,5 +1,6 @@
 import { App, Notice } from 'obsidian';
 import { VaultToolProvider, VaultTool, VaultToolResult } from './VaultToolProvider';
+import type { LLMToolDefinition, LLMToolParameterSchema } from '../services/LLMService';
 import CopilotPlugin from '../main';
 import { ToolApprovalModal } from '../ui/ToolApprovalModal';
 
@@ -12,7 +13,7 @@ export interface ToolExecutionContext {
 
 export interface ToolCall {
     name: string;
-    parameters: Record<string, any>;
+    parameters: Record<string, unknown>;
     context?: ToolExecutionContext;
 }
 
@@ -107,7 +108,7 @@ export class ToolExecutor {
         }
     }
 
-    private async executeToolDirectly(tool: VaultTool, parameters: Record<string, any>): Promise<VaultToolResult> {
+    private async executeToolDirectly(tool: VaultTool, parameters: Record<string, unknown>): Promise<VaultToolResult> {
         const result = await this.vaultToolProvider.executeTool(tool.name, parameters);
         this.recordExecution(tool.name, result.success ? 'success' : 'failed', result.error);
         return result;
@@ -130,7 +131,7 @@ export class ToolExecutor {
     /**
      * Get available tools for LLM function calling
      */
-    getToolsForLLM(): any[] {
+    getToolsForLLM(): LLMToolDefinition[] {
         const tools = this.vaultToolProvider.getAvailableTools();
 
         return tools.map(tool => ({
@@ -152,13 +153,13 @@ export class ToolExecutor {
     /**
      * Parse LLM function calls into tool calls
      */
-    parseLLMFunctionCalls(functionCalls: Array<{ name: string; arguments: string | Record<string, any> }>): ToolCall[] {
+    parseLLMFunctionCalls(functionCalls: Array<{ name: string; arguments: string | Record<string, unknown> }>): ToolCall[] {
         return functionCalls.map(call => {
-            let parameters: Record<string, any>;
+            let parameters: Record<string, unknown>;
             
             if (typeof call.arguments === 'string') {
                 try {
-                    parameters = JSON.parse(call.arguments) as Record<string, any>;
+                    parameters = JSON.parse(call.arguments) as Record<string, unknown>;
                 } catch (error) {
                     parameters = {};
                 }
@@ -230,11 +231,11 @@ export class ToolExecutor {
         return this.vaultToolProvider;
     }
 
-    private convertParametersToJSONSchema(parameters: Array<{ name: string; type: string; description: string; required?: boolean; default?: unknown }>): Record<string, any> {
-        const schema: Record<string, any> = {};
+    private convertParametersToJSONSchema(parameters: Array<{ name: string; type: string; description: string; required?: boolean; default?: unknown }>): Record<string, LLMToolParameterSchema> {
+        const schema: Record<string, LLMToolParameterSchema> = {};
 
         for (const param of parameters) {
-            const paramSchema: Record<string, any> = {
+            const paramSchema: LLMToolParameterSchema = {
                 type: param.type,
                 description: param.description
             };
@@ -249,7 +250,7 @@ export class ToolExecutor {
         return schema;
     }
 
-    private async requestApproval(tool: VaultTool, parameters: Record<string, any>): Promise<boolean> {
+    private async requestApproval(tool: VaultTool, parameters: Record<string, unknown>): Promise<boolean> {
         return await new Promise(resolve => {
             const modal = new ToolApprovalModal(this.app, {
                 toolName: tool.name,

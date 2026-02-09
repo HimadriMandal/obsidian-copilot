@@ -1,6 +1,6 @@
 import { CopilotConfig } from '../settings';
 import { ErrorHandler, RateLimiter, APIError } from '../utils/ErrorHandler';
-import { Notice, requestUrl } from 'obsidian';
+import { requestUrl } from 'obsidian';
 
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system' | 'tool';
@@ -20,12 +20,31 @@ export interface ToolCall {
     };
 }
 
+export interface LLMToolParameterSchema {
+    type: string;
+    description: string;
+    default?: unknown;
+}
+
+export interface LLMToolDefinition {
+    type: 'function';
+    function: {
+        name: string;
+        description: string;
+        parameters: {
+            type: 'object';
+            properties: Record<string, LLMToolParameterSchema>;
+            required: string[];
+        };
+    };
+}
+
 export interface LLMRequest {
     messages: ChatMessage[];
     temperature?: number;
     maxTokens?: number;
     stream?: boolean;
-    tools?: any[];
+    tools?: LLMToolDefinition[];
     tool_choice?: 'auto' | 'none' | { type: 'function', function: { name: string } };
 }
 
@@ -60,20 +79,18 @@ export class LLMService {
         this.config = config;
     }
 
-    async testConnection(): Promise<boolean> {
-        try {
-            const response = await this.makeRequest({
-                messages: [{ role: 'user', content: 'Hello' }],
-                maxTokens: 5
+	async testConnection(): Promise<boolean> {
+		try {
+			await this.makeRequest({
+				messages: [{ role: 'user', content: 'Hello' }],
+				maxTokens: 5
 			});
-			// console.log("reresponse - " + JSON.stringify(response));
-			// console.log("response content length - " + response?);
 			return true;
-        } catch (error) {
-            console.error('Connection test failed:', error);
-            return false;
-        }
-    }
+		} catch (error) {
+			console.error('Connection test failed:', error);
+			return false;
+		}
+	}
 
     async generateText(prompt: string, systemPrompt?: string): Promise<string> {
         const messages: ChatMessage[] = [];
@@ -111,7 +128,7 @@ export class LLMService {
      */
     async chatWithTools(
         messages: ChatMessage[],
-        tools: any[],
+        tools: LLMToolDefinition[],
         tool_choice: 'auto' | 'none' | { type: 'function', function: { name: string } } = 'auto'
     ): Promise<LLMResponse> {
         return await this.makeRequest({
@@ -126,7 +143,7 @@ export class LLMService {
      */
     async streamChatWithTools(
         messages: ChatMessage[],
-        tools: any[],
+        tools: LLMToolDefinition[],
         onChunk: (chunk: StreamChunk) => void,
         tool_choice: 'auto' | 'none' | { type: 'function', function: { name: string } } = 'auto'
     ): Promise<void> {
@@ -150,7 +167,15 @@ export class LLMService {
 
         this.abortController = new AbortController();
 
-        const requestBody: any = {
+        const requestBody: {
+            model: string;
+            messages: ChatMessage[];
+            temperature: number;
+            max_tokens: number;
+            stream: boolean;
+            tools?: LLMToolDefinition[];
+            tool_choice?: LLMRequest['tool_choice'];
+        } = {
             model: this.config.model,
             messages: request.messages,
             temperature: request.temperature ?? this.config.temperature,
@@ -236,7 +261,15 @@ export class LLMService {
 
         this.abortController = new AbortController();
 
-        const requestBody: any = {
+        const requestBody: {
+            model: string;
+            messages: ChatMessage[];
+            temperature: number;
+            max_tokens: number;
+            stream: boolean;
+            tools?: LLMToolDefinition[];
+            tool_choice?: LLMRequest['tool_choice'];
+        } = {
             model: this.config.model,
             messages: request.messages,
             temperature: request.temperature ?? this.config.temperature,
@@ -305,15 +338,15 @@ export class LLMService {
                 }
             }
 
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.name === 'AbortError') {
                 throw new Error('Request was cancelled');
             }
 
-            if (error.code) {
+            if (error && typeof error === 'object' && 'code' in error) {
                 ErrorHandler.handleAPIError(error as APIError);
-            } else {
-                ErrorHandler.handleNetworkError(error as Error);
+            } else if (error instanceof Error) {
+                ErrorHandler.handleNetworkError(error);
             }
             throw error;
         }

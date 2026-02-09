@@ -1,4 +1,4 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, WorkspaceLeaf} from 'obsidian';
+import {Editor, MarkdownView, Modal, Notice, Plugin, WorkspaceLeaf} from 'obsidian';
 import {DEFAULT_SETTINGS, CopilotConfig, CopilotSettingTab} from "./settings";
 import {LLMService} from "./services/LLMService";
 import {DocumentService} from "./services/DocumentService";
@@ -59,8 +59,8 @@ export default class CopilotPlugin extends Plugin {
 					if (analysis) {
 						new Notice(`Document analysis: ${analysis.wordCount} words, ${analysis.paragraphs} paragraphs`);
 					}
-				} catch (error: any) {
-					new Notice(`Analysis failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Analysis failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -74,8 +74,8 @@ export default class CopilotPlugin extends Plugin {
 					const improved = await this.documentService.improveText();
 					this.documentService.replaceSelection(improved);
 					new Notice('Text improved!');
-				} catch (error: any) {
-					new Notice(`Improvement failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Improvement failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -90,8 +90,8 @@ export default class CopilotPlugin extends Plugin {
 					const continuation = await this.documentService.continueText();
 					this.documentService.insertAtCursor('\n' + continuation);
 					new Notice('Text continued!');
-				} catch (error: any) {
-					new Notice(`Continuation failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Continuation failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -106,8 +106,8 @@ export default class CopilotPlugin extends Plugin {
 					const summary = await this.documentService.summarizeDocument();
 					// TODO: Display summary in copilot panel once implemented
 					new Notice('Summary generated (check copilot panel)');
-				} catch (error: any) {
-					new Notice(`Summarization failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Summarization failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -120,8 +120,8 @@ export default class CopilotPlugin extends Plugin {
 					const tags = await this.documentService.generateTags();
 					const tagString = tags.map(tag => `#${tag}`).join(' ');
 					new Notice(`Suggested tags: ${tagString}`);
-				} catch (error: any) {
-					new Notice(`Tag generation failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Tag generation failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -134,8 +134,8 @@ export default class CopilotPlugin extends Plugin {
 					new Notice('Testing connection...');
 					const isConnected = await this.llmService.testConnection();
 					new Notice(isConnected ? 'Connection successful!' : 'Connection failed!');
-				} catch (error: any) {
-					new Notice(`Connection test failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Connection test failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -149,8 +149,8 @@ export default class CopilotPlugin extends Plugin {
 					if (success) {
 						new Notice('✅ Vault tools are working correctly!');
 					}
-				} catch (error: any) {
-					new Notice(`Vault tools test failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Vault tools test failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -194,8 +194,8 @@ export default class CopilotPlugin extends Plugin {
 			callback: async () => {
 				try {
 					await this.functionCallHandler.testFunctionCalling();
-				} catch (error: any) {
-					new Notice(`Function calling test failed: ${error.message}`);
+				} catch (error: unknown) {
+					new Notice(`Function calling test failed: ${this.getErrorMessage(error)}`);
 				}
 			}
 		});
@@ -226,6 +226,18 @@ export default class CopilotPlugin extends Plugin {
 		if (this.llmService) {
 			this.llmService.updateConfig(this.settings);
 		}
+	}
+
+	private getErrorMessage(error: unknown): string {
+		if (error instanceof Error) {
+			return error.message;
+		}
+
+		if (typeof error === 'string') {
+			return error;
+		}
+
+		return 'Unknown error';
 	}
 
 	async activateView() {

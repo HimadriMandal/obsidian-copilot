@@ -1,5 +1,5 @@
 import { App, Notice } from 'obsidian';
-import { ChatMessage } from './LLMService';
+import { ChatMessage, ToolCall } from './LLMService';
 import CopilotPlugin from '../main';
 
 export interface Conversation {
@@ -20,7 +20,7 @@ export interface ConversationMessage extends ChatMessage {
     metadata?: {
         regenerated?: boolean;
         edited?: boolean;
-        toolCalls?: any[];
+        toolCalls?: ToolCall[];
         toolName?: string;
         toolCallId?: string;
     };
@@ -123,14 +123,14 @@ export class ConversationService {
     async addMessage(role: 'user' | 'assistant' | 'system' | 'tool', content: string, metadata?: {
         regenerated?: boolean;
         edited?: boolean;
-        toolCalls?: any[];
+        toolCalls?: ToolCall[];
         toolName?: string;
         toolCallId?: string;
     }): Promise<ConversationMessage> {
         let conversation = this.getCurrentConversation();
 
         if (!conversation) {
-            const conversationId = await this.createNewConversation();
+            await this.createNewConversation();
             conversation = this.getCurrentConversation()!;
         }
 

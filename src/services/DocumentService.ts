@@ -1,4 +1,4 @@
-import { App, TFile, TFolder, Vault, Notice, MarkdownView } from 'obsidian';
+import { App, TFile, TFolder, Notice, MarkdownView } from 'obsidian';
 import { LLMService } from './LLMService';
 
 export interface DocumentAnalysis {
@@ -60,8 +60,6 @@ export class DocumentService {
      * Analyze content and return detailed analysis
      */
     async analyzeContent(content: string): Promise<DocumentAnalysis> {
-        const lines = content.split('\n');
-
         // Basic text analysis
         const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
         const characterCount = content.length;
@@ -326,8 +324,9 @@ export class DocumentService {
             new Notice(`Created note: ${title}`);
 
             return file;
-        } catch (error: any) {
-            new Notice(`Failed to create note: ${error.message}`);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            new Notice(`Failed to create note: ${errorMessage}`);
             throw error;
         }
     }

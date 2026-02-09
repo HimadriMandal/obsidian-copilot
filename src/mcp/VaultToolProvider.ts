@@ -13,7 +13,7 @@ export interface VaultToolParameter {
     type: 'string' | 'number' | 'boolean';
     description: string;
     required: boolean;
-    default?: any;
+    default?: unknown;
 }
 
 export interface VaultToolResult {
@@ -308,7 +308,7 @@ export class VaultToolProvider {
     /**
      * Execute a vault tool
      */
-    async executeTool(name: string, parameters: Record<string, any>): Promise<VaultToolResult> {
+    async executeTool(name: string, parameters: Record<string, unknown>): Promise<VaultToolResult> {
         const tool = this.tools.get(name);
         if (!tool) {
             return {
@@ -330,33 +330,51 @@ export class VaultToolProvider {
             // Execute the tool
             switch (name) {
                 case 'read_file':
-                    return await this.readFile(parameters.path);
-                case 'search_files':
-                    return await this.searchFiles(parameters.pattern, parameters.limit);
+                    return await this.readFile(this.getRequiredStringParam(parameters, 'path'));
+                case 'search_files': {
+                    const pattern = this.getRequiredStringParam(parameters, 'pattern');
+                    const limit = this.getNumberParam(parameters, 'limit');
+                    return await this.searchFiles(pattern, limit ?? 20);
+                }
                 case 'list_files':
-                    return await this.listFiles(parameters.path);
+                    return await this.listFiles(this.getStringParam(parameters, 'path') ?? '');
                 case 'get_file_metadata':
-                    return await this.getFileMetadata(parameters.path);
-                case 'search_content':
-                    return await this.searchContent(parameters.query, parameters.file_pattern);
+                    return await this.getFileMetadata(this.getRequiredStringParam(parameters, 'path'));
+                case 'search_content': {
+                    const query = this.getRequiredStringParam(parameters, 'query');
+                    const filePattern = this.getStringParam(parameters, 'file_pattern');
+                    return await this.searchContent(query, filePattern);
+                }
                 case 'get_active_document':
                     return await this.getActiveDocument();
                 case 'create_file':
-                    return await this.createFile(parameters.path, parameters.content);
+                    return await this.createFile(
+                        this.getRequiredStringParam(parameters, 'path'),
+                        this.getStringParam(parameters, 'content') ?? ''
+                    );
                 case 'update_file':
-                    return await this.updateFile(parameters.path, parameters.content);
+                    return await this.updateFile(
+                        this.getRequiredStringParam(parameters, 'path'),
+                        this.getRequiredStringParam(parameters, 'content')
+                    );
                 case 'append_to_file':
-                    return await this.appendToFile(parameters.path, parameters.content);
+                    return await this.appendToFile(
+                        this.getRequiredStringParam(parameters, 'path'),
+                        this.getRequiredStringParam(parameters, 'content')
+                    );
                 case 'replace_selection':
-                    return await this.replaceSelection(parameters.content);
+                    return await this.replaceSelection(this.getRequiredStringParam(parameters, 'content'));
                 case 'replace_active_document':
-                    return await this.replaceActiveDocument(parameters.content);
+                    return await this.replaceActiveDocument(this.getRequiredStringParam(parameters, 'content'));
                 case 'rename_file':
-                    return await this.renameFile(parameters.old_path, parameters.new_path);
+                    return await this.renameFile(
+                        this.getRequiredStringParam(parameters, 'old_path'),
+                        this.getRequiredStringParam(parameters, 'new_path')
+                    );
                 case 'delete_file':
-                    return await this.deleteFile(parameters.path);
+                    return await this.deleteFile(this.getRequiredStringParam(parameters, 'path'));
                 case 'create_folder':
-                    return await this.createFolder(parameters.path);
+                    return await this.createFolder(this.getRequiredStringParam(parameters, 'path'));
                 case 'get_vault_stats':
                     return await this.getVaultStats();
                 default:
@@ -373,14 +391,14 @@ export class VaultToolProvider {
         }
     }
 
-    private validateParameters(tool: VaultTool, parameters: Record<string, any>): string | null {
+    private validateParameters(tool: VaultTool, parameters: Record<string, unknown>): string | null {
         for (const param of tool.parameters) {
             if (param.required && !(param.name in parameters)) {
                 return `Missing required parameter: ${param.name}`;
             }
 
             if (param.name in parameters) {
-                const value = parameters[param.name] as unknown;
+                const value = parameters[param.name];
                 const expectedType = param.type;
                 const actualType = typeof value;
 
@@ -397,6 +415,24 @@ export class VaultToolProvider {
         }
 
         return null;
+    }
+
+    private getStringParam(parameters: Record<string, unknown>, name: string): string | undefined {
+        const value = parameters[name];
+        return typeof value === 'string' ? value : undefined;
+    }
+
+    private getNumberParam(parameters: Record<string, unknown>, name: string): number | undefined {
+        const value = parameters[name];
+        return typeof value === 'number' ? value : undefined;
+    }
+
+    private getRequiredStringParam(parameters: Record<string, unknown>, name: string): string {
+        const value = this.getStringParam(parameters, name);
+        if (value === undefined) {
+            throw new Error(`Missing or invalid parameter: ${name}`);
+        }
+        return value;
     }
 
     // Tool implementations
