@@ -206,7 +206,7 @@ export class FunctionCallHandler {
             const result = await this.processFunctionCalls([testToolCall]);
 
             if (result.success) {
-                new Notice('✅ Function calling integration is working correctly');
+                new Notice('Function calling integration is working correctly.');
                 return true;
             } else {
                 new Notice(`❌ Function calling test failed: ${result.error}`);

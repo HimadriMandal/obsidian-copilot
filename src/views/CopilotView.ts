@@ -23,7 +23,7 @@ export class CopilotView extends ItemView {
     }
 
     getDisplayText(): string {
-        return 'AI Copilot';
+        return 'AI copilot';
     }
 
     getIcon(): string {
@@ -90,7 +90,7 @@ export class CopilotView extends ItemView {
 
         // Title
         const title = header.createDiv('copilot-title');
-        title.createEl('h3', { text: 'AI Copilot' });
+        title.createEl('h3', { text: 'AI copilot' });
 
         // Status indicator
         const status = header.createDiv('copilot-status');
@@ -446,7 +446,8 @@ export class CopilotView extends ItemView {
         messageEl.id = loadingId;
 
         const messageContent = messageEl.createDiv('message-content');
-        messageContent.innerHTML = '<div class="loading-dots">●●●</div>';
+        const loadingDots = messageContent.createDiv('loading-dots');
+        loadingDots.textContent = '●●●';
 
         chatHistory.scrollTo({
             top: chatHistory.scrollHeight,
@@ -464,19 +465,24 @@ export class CopilotView extends ItemView {
 
     private addWelcomeMessage(chatHistory: HTMLElement): void {
         const welcomeMsg = chatHistory.createDiv('message system-message');
-        welcomeMsg.innerHTML = `
-            <div class="message-content">
-                <p>👋 Welcome to your AI Copilot!</p>
-                <p>I can help you with:</p>
-                <ul>
-                    <li>Writing and editing text</li>
-                    <li>Analyzing your documents</li>
-                    <li>Generating summaries and tags</li>
-                    <li>Organizing your knowledge base</li>
-                </ul>
-                <p>Start by typing a message below or use the Tools tab for quick actions.</p>
-            </div>
-        `;
+        const content = welcomeMsg.createDiv('message-content');
+        const p1 = content.createEl('p');
+		p1.textContent = 'Welcome to your copilot.';
+        const p2 = content.createEl('p');
+        p2.textContent = 'I can help you with:';
+        const ul = content.createEl('ul');
+        const items = [
+            'Writing and editing text',
+            'Analyzing your documents',
+            'Generating summaries and tags',
+            'Organizing your knowledge base'
+        ];
+        for (const item of items) {
+            const li = ul.createEl('li');
+            li.textContent = item;
+        }
+        const p3 = content.createEl('p');
+        p3.textContent = 'Start by typing a message below or use the tools tab for quick actions.';
     }
 
     private async clearChat(): Promise<void> {

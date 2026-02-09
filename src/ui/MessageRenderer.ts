@@ -76,7 +76,9 @@ export class MessageRenderer extends Component {
      * Render system message (simple HTML)
      */
     private async renderSystemMessage(container: HTMLElement, content: string): Promise<void> {
-        container.innerHTML = this.parseSimpleMarkdown(content);
+        const html = this.parseSimpleMarkdown(content);
+        const fragment = document.createRange().createContextualFragment(html);
+        container.replaceChildren(...Array.from(fragment.childNodes));
     }
 
     /**
@@ -103,7 +105,9 @@ export class MessageRenderer extends Component {
         } catch (error) {
             console.warn('Failed to render markdown, falling back to simple rendering:', error);
             // Fallback to simple markdown parsing
-            container.innerHTML = this.parseSimpleMarkdown(content);
+            const html = this.parseSimpleMarkdown(content);
+            const fragment = document.createRange().createContextualFragment(html);
+            container.replaceChildren(...Array.from(fragment.childNodes));
             this.postProcessRenderedContent(container, options);
         }
     }
@@ -146,7 +150,7 @@ export class MessageRenderer extends Component {
                 attr: { 'aria-label': 'Copy code' }
             });
 
-            copyButton.innerHTML = '📋';
+            copyButton.textContent = '📋';
             copyButton.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -154,16 +158,16 @@ export class MessageRenderer extends Component {
                 const code = codeBlock.textContent || '';
                 navigator.clipboard.writeText(code)
                     .then(() => {
-                        copyButton.innerHTML = '✅';
+                        copyButton.textContent = '✅';
                         setTimeout(() => {
-                            copyButton.innerHTML = '📋';
+                            copyButton.textContent = '📋';
                         }, 2000);
                     })
                     .catch((error) => {
                         console.warn('Failed to copy code:', error);
-                        copyButton.innerHTML = '❌';
+                        copyButton.textContent = '❌';
                         setTimeout(() => {
-                            copyButton.innerHTML = '📋';
+                            copyButton.textContent = '📋';
                         }, 2000);
                     });
             });
@@ -195,7 +199,7 @@ export class MessageRenderer extends Component {
                 // Add external link indicator
                 if (!link.querySelector('.external-link-icon')) {
                     const icon = link.createSpan('external-link-icon');
-                    icon.innerHTML = ' 🔗';
+                    icon.textContent = ' 🔗';
                 }
             }
         });
@@ -322,7 +326,7 @@ export class MessageRenderer extends Component {
             }
         });
 
-        button.innerHTML = action.icon;
+        button.textContent = action.icon;
         button.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();

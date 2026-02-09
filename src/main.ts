@@ -1,4 +1,4 @@
-import {Editor, MarkdownView, Modal, Notice, Plugin, WorkspaceLeaf} from 'obsidian';
+import {Editor, MarkdownView, Notice, Plugin, WorkspaceLeaf} from 'obsidian';
 import {DEFAULT_SETTINGS, CopilotConfig, CopilotSettingTab} from "./settings";
 import {LLMService} from "./services/LLMService";
 import {DocumentService} from "./services/DocumentService";
@@ -36,14 +36,14 @@ export default class CopilotPlugin extends Plugin {
 		);
 
 		// Create ribbon icon for opening the copilot panel
-		this.addRibbonIcon('brain-circuit', 'AI Copilot', () => {
+		this.addRibbonIcon('brain-circuit', 'AI copilot', () => {
 			void this.activateView();
 		});
 
 		// Add commands for AI operations
 		this.addCommand({
 			id: 'open-copilot-panel',
-			name: 'Open AI Copilot Panel',
+			name: 'Open AI copilot panel',
 			callback: () => {
 				void this.activateView();
 			}
@@ -52,12 +52,12 @@ export default class CopilotPlugin extends Plugin {
 		//Could be removed, we dont need this one.
 		this.addCommand({
 			id: 'analyze-document',
-			name: 'Analyze Current Document',
+			name: 'Analyze current document',
 			callback: async () => {
 				try {
 					const analysis = await this.documentService.analyzeActiveDocument();
 					if (analysis) {
-						new Notice(`Document analysis: ${analysis.wordCount} words, ${analysis.paragraphs} paragraphs`);
+						new Notice(`Document analysis: ${analysis.wordCount} words, ${analysis.paragraphs} paragraphs.`);
 					}
 				} catch (error: unknown) {
 					new Notice(`Analysis failed: ${this.getErrorMessage(error)}`);
@@ -68,12 +68,12 @@ export default class CopilotPlugin extends Plugin {
 		//this is also a p2 requirement.
 		this.addCommand({
 			id: 'improve-selection',
-			name: 'Improve Selected Text',
+			name: 'Improve selected text',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				try {
 					const improved = await this.documentService.improveText();
 					this.documentService.replaceSelection(improved);
-					new Notice('Text improved!');
+					new Notice('Text improved.');
 				} catch (error: unknown) {
 					new Notice(`Improvement failed: ${this.getErrorMessage(error)}`);
 				}
@@ -84,12 +84,12 @@ export default class CopilotPlugin extends Plugin {
 		//Will pick this in the next iteration.
 		this.addCommand({
 			id: 'continue-writing',
-			name: 'Continue Writing',
+			name: 'Continue writing',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				try {
 					const continuation = await this.documentService.continueText();
 					this.documentService.insertAtCursor('\n' + continuation);
-					new Notice('Text continued!');
+					new Notice('Text continued.');
 				} catch (error: unknown) {
 					new Notice(`Continuation failed: ${this.getErrorMessage(error)}`);
 				}
@@ -100,12 +100,12 @@ export default class CopilotPlugin extends Plugin {
 		//This could be use full, but - need to understand how do we send the mcp and tool setting to the llm.
 		this.addCommand({
 			id: 'summarize-document',
-			name: 'Summarize Document',
+			name: 'Summarize document',
 			callback: async () => {
 				try {
-					const summary = await this.documentService.summarizeDocument();
+					// const summary = await this.documentService.summarizeDocument(); will use this in the next iteration, need to understand how do we send the mcp and tool setting to the llm.
 					// TODO: Display summary in copilot panel once implemented
-					new Notice('Summary generated (check copilot panel)');
+					new Notice('Summary generated (check copilot panel).');
 				} catch (error: unknown) {
 					new Notice(`Summarization failed: ${this.getErrorMessage(error)}`);
 				}
@@ -114,7 +114,7 @@ export default class CopilotPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'generate-tags',
-			name: 'Generate Tags',
+			name: 'Generate tags',
 			callback: async () => {
 				try {
 					const tags = await this.documentService.generateTags();
@@ -128,12 +128,12 @@ export default class CopilotPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'test-llm-connection',
-			name: 'Test LLM Connection',
+			name: 'Test connection',
 			callback: async () => {
 				try {
-					new Notice('Testing connection...');
+					new Notice('Testing connection….');
 					const isConnected = await this.llmService.testConnection();
-					new Notice(isConnected ? 'Connection successful!' : 'Connection failed!');
+					new Notice(isConnected ? 'Connection successful.' : 'Connection failed.');
 				} catch (error: unknown) {
 					new Notice(`Connection test failed: ${this.getErrorMessage(error)}`);
 				}
@@ -142,12 +142,12 @@ export default class CopilotPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'test-vault-tools',
-			name: 'Test Vault Tools',
+			name: 'Test vault tools',
 			callback: async () => {
 				try {
 					const success = await this.toolExecutor.testToolExecution();
 					if (success) {
-						new Notice('✅ Vault tools are working correctly!');
+						new Notice('Vault tools are working correctly.');
 					}
 				} catch (error: unknown) {
 					new Notice(`Vault tools test failed: ${this.getErrorMessage(error)}`);
@@ -157,28 +157,28 @@ export default class CopilotPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'show-vault-tools-help',
-			name: 'Show Available Vault Tools',
+			name: 'Show available vault tools',
 			callback: () => {
 				const help = this.toolExecutor.getToolsHelp();
 				// Create a new note with the help content
 				this.app.vault.create(`Vault Tools Help - ${new Date().toISOString().split('T')[0]}.md`, help)
 					.then(() => {
-						new Notice('Created help file with available vault tools');
+						new Notice('Created help file with available vault tools.');
 					})
 					.catch(() => {
-						new Notice('Failed to create help file');
+						new Notice('Failed to create help file.');
 					});
 			}
 		});
 
 		this.addCommand({
 			id: 'show-tool-stats',
-			name: 'Show Tool Usage Statistics',
+			name: 'Show tool usage statistics',
 			callback: () => {
 				const stats = this.toolExecutor.getToolStats();
-				const message = `Tool Statistics:
-📊 Total Tools: ${stats.totalTools} (${stats.safeTools} safe, ${stats.sensitiveTools} sensitive)
-🔧 Total Executions: ${stats.totalExecutions}
+				const message = `Tool statistics:
+📊 Total tools: ${stats.totalTools} (${stats.safeTools} safe, ${stats.sensitiveTools} sensitive)
+🔧 Total executions: ${stats.totalExecutions}
 ✅ Successful: ${stats.successfulExecutions}
 ❌ Failed: ${stats.failedExecutions}
 🚫 Denied: ${stats.deniedExecutions}
@@ -190,7 +190,7 @@ export default class CopilotPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'test-function-calling',
-			name: 'Test Function Calling',
+			name: 'Test function calling',
 			callback: async () => {
 				try {
 					await this.functionCallHandler.testFunctionCalling();

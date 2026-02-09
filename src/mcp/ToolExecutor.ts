@@ -160,7 +160,7 @@ export class ToolExecutor {
             if (typeof call.arguments === 'string') {
                 try {
                     parameters = JSON.parse(call.arguments) as Record<string, unknown>;
-                } catch (error) {
+                } catch {
                     parameters = {};
                 }
             } else {
@@ -272,7 +272,7 @@ export class ToolExecutor {
             });
 
             if (result.success) {
-                new Notice('✅ Tool execution system is working correctly');
+                new Notice('Tool execution system is working correctly.');
                 return true;
             } else {
                 new Notice(`❌ Tool test failed: ${result.error}`);

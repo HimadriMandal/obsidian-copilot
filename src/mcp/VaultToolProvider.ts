@@ -473,7 +473,7 @@ export class VaultToolProvider {
         }
     }
 
-    private async searchFiles(pattern: string, limit: number = 20): Promise<VaultToolResult> {
+    private searchFiles(pattern: string, limit: number = 20): Promise<VaultToolResult> {
         try {
             const files = this.app.vault.getFiles();
             const regex = new RegExp(pattern.replace(/\*/g, '.*'), 'i');
@@ -488,7 +488,7 @@ export class VaultToolProvider {
                     modified: file.stat.mtime
                 }));
 
-            return {
+            return Promise.resolve({
                 success: true,
                 data: {
                     matches: matches,
@@ -496,12 +496,12 @@ export class VaultToolProvider {
                     pattern: pattern
                 },
                 message: `Found ${matches.length} files matching pattern: ${pattern}`
-            };
+            });
         } catch (error) {
-            return {
+            return Promise.resolve({
                 success: false,
                 error: `Search failed: ${error instanceof Error ? error.message : String(error)}`
-            };
+            });
         }
     }
 
@@ -646,7 +646,7 @@ export class VaultToolProvider {
                             matches: matches.slice(0, 5) // Limit matches per file
                         });
                     }
-                } catch (error) {
+                } catch {
                     // Skip files that can't be read
                     continue;
                 }

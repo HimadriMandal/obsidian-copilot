@@ -423,7 +423,7 @@ export class LLMService {
                 tags: Array.isArray(parsed.tags) ? parsed.tags as string[] : [],
                 sentiment: typeof parsed.sentiment === 'string' ? parsed.sentiment : 'neutral'
             };
-        } catch (error) {
+        } catch {
             // Fallback if JSON parsing fails
             return {
                 summary: response.substring(0, 200) + '...',
