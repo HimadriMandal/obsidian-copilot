@@ -505,7 +505,7 @@ export class VaultToolProvider {
         }
     }
 
-    private async listFiles(path: string = ''): Promise<VaultToolResult> {
+    private listFiles(path: string = ''): Promise<VaultToolResult> {
         try {
             const normalizedPath = normalizePath(path);
             let targetFolder: TFolder;
@@ -515,16 +515,16 @@ export class VaultToolProvider {
             } else {
                 const folder = this.app.vault.getAbstractFileByPath(normalizedPath);
                 if (!folder) {
-                    return {
+                    return Promise.resolve({
                         success: false,
                         error: `Folder not found: ${path}`
-                    };
+                    });
                 }
                 if (!(folder instanceof TFolder)) {
-                    return {
+                    return Promise.resolve({
                         success: false,
                         error: `Path is not a folder: ${path}`
-                    };
+                    });
                 }
                 targetFolder = folder;
             }
@@ -537,7 +537,7 @@ export class VaultToolProvider {
                 modified: child instanceof TFile ? child.stat.mtime : undefined
             }));
 
-            return {
+            return Promise.resolve({
                 success: true,
                 data: {
                     path: targetFolder.path,
@@ -545,23 +545,23 @@ export class VaultToolProvider {
                     count: files.length
                 },
                 message: `Listed ${files.length} items in: ${targetFolder.path || 'vault root'}`
-            };
+            });
         } catch (error) {
-            return {
+            return Promise.resolve({
                 success: false,
                 error: `Failed to list files: ${error instanceof Error ? error.message : String(error)}`
-            };
+            });
         }
     }
 
-    private async getFileMetadata(path: string): Promise<VaultToolResult> {
+    private getFileMetadata(path: string): Promise<VaultToolResult> {
         try {
             const file = this.app.vault.getAbstractFileByPath(normalizePath(path));
             if (!file) {
-                return {
+                return Promise.resolve({
                     success: false,
                     error: `File not found: ${path}`
-                };
+                });
             }
 
             let metadata: Partial<FileMetadata> = {
@@ -600,16 +600,16 @@ export class VaultToolProvider {
                 }
             }
 
-            return {
+            return Promise.resolve({
                 success: true,
                 data: metadata,
                 message: `Retrieved metadata for: ${path}`
-            };
+            });
         } catch (error) {
-            return {
+            return Promise.resolve({
                 success: false,
                 error: `Failed to get metadata: ${error instanceof Error ? error.message : String(error)}`
-            };
+            });
         }
     }
 
@@ -825,40 +825,40 @@ export class VaultToolProvider {
         }
     }
 
-    private async replaceSelection(content: string): Promise<VaultToolResult> {
+    private replaceSelection(content: string): Promise<VaultToolResult> {
         try {
             const view = this.app.workspace.getActiveViewOfType(MarkdownView);
             const editor = view?.editor;
             if (!editor) {
-                return {
+                return Promise.resolve({
                     success: false,
                     error: 'No active editor found'
-                };
+                });
             }
 
             const selectionText = editor.getSelection();
             if (!selectionText || selectionText.trim().length === 0) {
-                return {
+                return Promise.resolve({
                     success: false,
                     error: 'No active selection found'
-                };
+                });
             }
 
             editor.replaceSelection(content);
 
-            return {
+            return Promise.resolve({
                 success: true,
                 data: {
                     selectionLength: selectionText.length,
                     insertedLength: content.length
                 },
                 message: 'Replaced current selection'
-            };
+            });
         } catch (error) {
-            return {
+            return Promise.resolve({
                 success: false,
                 error: `Failed to replace selection: ${error instanceof Error ? error.message : String(error)}`
-            };
+            });
         }
     }
 

@@ -253,7 +253,7 @@ export class CopilotSettingTab extends PluginSettingTab {
         button
           .setButtonText("Test connection")
           .setCta()
-          .onClick(async () => {
+          .onClick(() => {
             button.setButtonText("Testing...");
             button.setDisabled(true);
             // TODO: Implement connection testing in Phase 1.2

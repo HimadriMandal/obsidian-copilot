@@ -1,5 +1,5 @@
 import { CopilotConfig } from '../settings';
-import { ErrorHandler, RateLimiter, APIError } from '../utils/ErrorHandler';
+import { ErrorHandler, RateLimiter, APIError, HttpAPIError } from '../utils/ErrorHandler';
 import { requestUrl } from 'obsidian';
 
 export interface ChatMessage {
@@ -163,7 +163,7 @@ export class LLMService {
     }
 
     private async makeRequest(request: LLMRequest): Promise<LLMResponse> {
-        await this.rateLimiter.checkRateLimit();
+        this.rateLimiter.checkRateLimit();
 
         this.abortController = new AbortController();
 
@@ -208,18 +208,18 @@ export class LLMService {
                     const response = {
                         status: httpResponse.status,
                         statusText: 'Error',
-                        json: async () => {
+                        json: () => {
                             try {
-                                return JSON.parse(httpResponse.text) as Record<
+                                return Promise.resolve(JSON.parse(httpResponse.text) as Record<
                                   string,
                                   unknown
-                                >;
+                                >);
                             } catch {
-                                return {};
+                                return Promise.resolve({});
                             }
                         }
                     } as Response;
-                    throw await this.handleHTTPError(response);
+                    throw new HttpAPIError(await this.handleHTTPError(response));
                 }
 
                 const parsed = JSON.parse(httpResponse.text) as Record<string, unknown>;
@@ -257,7 +257,7 @@ export class LLMService {
         request: LLMRequest,
         onChunk: (chunk: StreamChunk) => void
     ): Promise<void> {
-        await this.rateLimiter.checkRateLimit();
+        this.rateLimiter.checkRateLimit();
 
         this.abortController = new AbortController();
 
@@ -301,15 +301,15 @@ export class LLMService {
                 const httpResponse = {
                     status: response.status,
                     statusText: 'Error',
-                    json: async () => {
+                    json: () => {
                         try {
-                            return JSON.parse(response.text) as Record<string, unknown>;
+                            return Promise.resolve(JSON.parse(response.text) as Record<string, unknown>);
                         } catch {
-                            return {};
+                            return Promise.resolve({});
                         }
                     }
                 } as Response;
-                throw await this.handleHTTPError(httpResponse);
+                throw new HttpAPIError(await this.handleHTTPError(httpResponse));
             }
 
             const text = response.text;

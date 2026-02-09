@@ -6,6 +6,18 @@ export interface APIError {
     details?: Record<string, unknown>;
 }
 
+/** Error subclass for API/HTTP errors so thrown values are proper Error instances. */
+export class HttpAPIError extends Error implements APIError {
+    readonly code: string;
+    readonly details?: Record<string, unknown>;
+    constructor(apiError: APIError) {
+        super(apiError.message);
+        this.name = 'HttpAPIError';
+        this.code = apiError.code;
+        this.details = apiError.details;
+    }
+}
+
 export class ErrorHandler {
     static handleAPIError(error: APIError, showNotice: boolean = true): string {
         let userMessage: string;
@@ -117,7 +129,7 @@ export class RateLimiter {
         this.timeWindowMs = timeWindowMs;
     }
 
-    async checkRateLimit(): Promise<void> {
+    checkRateLimit(): void {
         const now = Date.now();
 
         // Remove old requests outside the time window

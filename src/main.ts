@@ -101,7 +101,7 @@ export default class CopilotPlugin extends Plugin {
 		this.addCommand({
 			id: 'summarize-document',
 			name: 'Summarize document',
-			callback: async () => {
+			callback: () => {
 				try {
 					// const summary = await this.documentService.summarizeDocument(); will use this in the next iteration, need to understand how do we send the mcp and tool setting to the llm.
 					// TODO: Display summary in copilot panel once implemented

@@ -50,7 +50,7 @@ export class CopilotView extends ItemView {
         this.switchToTab('chat');
 
         // Load existing conversation messages
-        void this.loadConversationHistory();
+        await this.loadConversationHistory();
     }
 
     private async loadConversationHistory(): Promise<void> {
