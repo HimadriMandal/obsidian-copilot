@@ -80,9 +80,10 @@ export class CopilotView extends ItemView {
         }
     }
 
-    async onClose(): Promise<void> {
+    onClose(): Promise<void> {
         // Cleanup MessageRenderer
         this.messageRenderer.unload();
+        return Promise.resolve();
     }
 
     private createHeader(): void {

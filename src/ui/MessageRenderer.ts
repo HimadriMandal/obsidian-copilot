@@ -61,7 +61,7 @@ export class MessageRenderer extends Component {
 
         // Render content based on role
         if (role === 'system') {
-            await this.renderSystemMessage(contentContainer, content);
+            this.renderSystemMessage(contentContainer, content);
         } else {
             await this.renderMarkdownContent(contentContainer, content, options);
         }
@@ -75,7 +75,7 @@ export class MessageRenderer extends Component {
     /**
      * Render system message (simple HTML)
      */
-    private async renderSystemMessage(container: HTMLElement, content: string): Promise<void> {
+    private renderSystemMessage(container: HTMLElement, content: string): void {
         const html = this.parseSimpleMarkdown(content);
         const fragment = document.createRange().createContextualFragment(html);
         container.replaceChildren(...Array.from(fragment.childNodes));

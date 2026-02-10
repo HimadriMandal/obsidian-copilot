@@ -987,7 +987,7 @@ export class VaultToolProvider {
         }
     }
 
-    private async getVaultStats(): Promise<VaultToolResult> {
+    private getVaultStats(): Promise<VaultToolResult> {
         try {
             const allFiles = this.app.vault.getAllLoadedFiles();
             const markdownFiles = this.app.vault.getMarkdownFiles();
@@ -1008,16 +1008,16 @@ export class VaultToolProvider {
                 vaultName: this.app.vault.getName() || 'Vault'
             };
 
-            return {
+            return Promise.resolve({
                 success: true,
                 data: stats,
                 message: `Vault contains ${stats.totalFiles} files in ${stats.folders} folders`
-            };
+            });
         } catch (error) {
-            return {
+            return Promise.resolve({
                 success: false,
                 error: `Failed to get vault stats: ${error instanceof Error ? error.message : String(error)}`
-            };
+            });
         }
     }
 }
